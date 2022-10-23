@@ -30,10 +30,15 @@ class Player:
         if self.direction == 0:
             self.GAME.SCREEN.blit(self.left_sprites[int(self.anim_frame)], (self.draw_pos[0], self.draw_pos[1]))
     def update(self):
-        self.pos[0] += self.velocity[0]
-        self.pos[1] += self.velocity[1] 
+        keys_pressed = pg.key.get_pressed()
+        mx, my = pg.mouse.get_pos()
+        if (self.draw_pos[0] < mx - 5 or self.draw_pos[0] > mx + 5) and (self.draw_pos[1] < my - 5 or self.draw_pos[1] > my + 5):
+            self.pos[0] += self.velocity[0]
+            self.pos[1] += self.velocity[1] 
         if self.velocity[0] != 0 or self.velocity[1] != 0:
             self.GAME.client.send_msg([self.GAME.client.id, self.pos[0], self.pos[1], self.direction, self.anim_frame])
+        if keys_pressed[pg.K_p]:
+            self.GAME.client.send_msg("/tp")
         self.move()
         self.draw_pos[0] = -self.GAME.camera.pos[0] + self.pos[0] + self.GAME.camera.offset[0]
         self.draw_pos[1] = -self.GAME.camera.pos[1] + self.pos[1] + self.GAME.camera.offset[1]

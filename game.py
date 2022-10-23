@@ -24,11 +24,11 @@ class Game:
         self.MENU = MainMenu(self)
         self.CLOCK = pg.time.Clock()
         self.buttons = []
-        self.player = Player(self, [0, 0])
+        self.player = Player(self, [-400, 0])
         self.delta_time = 1
         self.prev_time = 0
         self.camera = Camera(self, self.player)
-        self.game_objects = [] #[GameObject(self,[500, 400], [pg.image.load("assets/textures/start_btn.png")], True)]
+        self.game_objects = [GameObject(self,[800, 400], [pg.image.load("assets/textures/start_btn.png")], True)]
         self.players = []
         self.client = self.client = Client('10.0.0.10', 12345)
         settings.CAMERA_TARGET = self.player
@@ -44,8 +44,6 @@ class Game:
                     print("[QUIT GAME]")
                     self.client.send_msg([self.client.id, "[QUIT]"])
                     sys.exit()
-                    
-
             self.set_delta_time()
             self.update()
             self.draw()
@@ -86,6 +84,7 @@ class Game:
                     if r1[0] + r1[2] > r2[0] and r2[0] + r2[2] > r1[0] and r1[1] + r1[3] > r2[1] and r2[1] + r2[3] > r1[1]:
                         if r1[1] > r2[1]:
                             self.player.draw()
+                
             self.text_to_screen(self.name, self.player.draw_pos[0] + 48, self.player.draw_pos[1] - 20)
         pg.display.update()
     def text_objects(self, txt):

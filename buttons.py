@@ -12,9 +12,7 @@ class Button:
         self.clicked = False
         self.name = name
     def draw(self):
-
         self.GAME.SCREEN.blit(self.image, (self.rect.x, self.rect.y))
-
     def check_click(self):
         action = False
         pos = pg.mouse.get_pos()

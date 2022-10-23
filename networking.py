@@ -14,7 +14,7 @@ class Server:
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.bind((self.host, self.port))
         self.s.listen()
-        print(f'server succsesfully made on ({self.host, self.port}')
+        print(f'server succsesfully made on {self.host, self.port}')
         while True:
             conn, addr = self.s.accept()
             CT = threading.Thread(target=self.handle_clients, args=(conn, addr))
@@ -38,22 +38,24 @@ class Server:
                         aj = True
                         break
                 if not aj:
-                    self.players.append([a, 0, 0, 0, 0, data_v[1]])
+                    self.players.append([a, -300, 0, 0, 0, data_v[1]])
                     d = ["[URNUM]", a]
                     c.send(pickle.dumps(d))
             elif data_v == "[GET_DATA]":
                 c.send(pickle.dumps(["[DATA]",self.players]))
+            elif data_v == "/tp":
+                self.players[0][1] = self.players[1][1]
+                self.players[0][2] = self.players[1][2]
+                for conn in self.connections:
+                    conn.send(pickle.dumps(["[POSUPDATE]", self.players]))
             else:
-                #print(data_v)
                 for p in self.players:
                     if p[0] == data_v[0]:
-
                         p[0] = data_v[0]
                         p[1] = data_v[1]
                         p[2] = data_v[2]
                         p[3] = data_v[3]
                         p[4] = data_v[4]
-
                         break
             if not data:
                 self.connections.remove(c)
@@ -86,7 +88,7 @@ class Client:
             print(msg)
             if msg[0] == "[URNUM]":
                 self.id = msg[1]
-            if msg[0] == "[DATA]":
+            if msg[0] == "[DATA]" or msg[0] == "[POSUPDATE]":
                 self.players = msg[1]
 def start_server(host, port):
     for a in range(10):
