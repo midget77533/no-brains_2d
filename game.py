@@ -11,7 +11,8 @@ from networking import *
 import pickle
 
 default_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 15)
-
+msg_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 30)
+chat_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 20)
 class Game:
     def __init__(self):
         pg.init()
@@ -31,6 +32,8 @@ class Game:
         self.game_objects = [GameObject(self,[800, 400], [pg.image.load("assets/textures/start_btn.png")], True)]
         self.players = []
         self.client = self.client = Client('10.0.0.10', 12345)
+        self.chat_text = ""
+        self.typing = False
         settings.CAMERA_TARGET = self.player
     def run(self):
         self.SCREEN = pg.display.set_mode(RES)
@@ -44,6 +47,21 @@ class Game:
                     print("[QUIT GAME]")
                     self.client.send_msg([self.client.id, "[QUIT]"])
                     sys.exit()
+                if event.type == pg.KEYDOWN:
+                    if self.typing:
+                        if event.key == pg.K_RETURN:
+                            self.client.send_msg(["[MSG]", f"<{self.name}> {self.chat_text}"])
+                            self.chat_text = ""
+                            self.typing = False
+                        if event.key == pg.K_BACKSPACE:
+                            self.chat_text = self.chat_text[:-1]
+                        else:
+                            self.chat_text += event.unicode
+                if event.type == pg.KEYDOWN and event.key == pg.K_t:
+                    self.typing = True
+
+
+
             self.set_delta_time()
             self.update()
             self.draw()
@@ -86,6 +104,28 @@ class Game:
                             self.player.draw()
                 
             self.text_to_screen(self.name, self.player.draw_pos[0] + 48, self.player.draw_pos[1] - 20)
+            if self.typing:
+                s = pg.Surface((self.SCREEN.get_width(), 100))
+                s.fill((0,0,0))
+                s.set_alpha(80)
+                surf = msg_font.render(self.chat_text, True, (0,0,0))
+                self.SCREEN.blit(s, (0,self.SCREEN.get_height() - 40))
+                self.SCREEN.blit(surf, (0, self.SCREEN.get_height() - 40))
+            for m in range(len(self.client.visible_messages)):
+                msg = self.client.visible_messages[m]
+                if msg[1] > 0:
+                    surf = msg_font.render(msg[0], True, (0,0,0))
+                    s = pg.Surface((surf.get_width() + 10, surf.get_height()))
+                    s.fill((0,0,0))
+                    s.set_alpha(30)
+                    a = surf.get_height()
+                    p = (len(self.client.visible_messages) * a)
+                    self.SCREEN.blit(s, (0, self.SCREEN.get_height() - p + (m * a) - 150))
+                    self.SCREEN.blit(surf, (0, self.SCREEN.get_height() - p + (m * a) - 150))
+                    msg[1] -= 1 / 60 * self.delta_time
+
+
+            
         pg.display.update()
     def text_objects(self, txt):
         txt_surf = default_font.render(txt, True, (0,0,0))

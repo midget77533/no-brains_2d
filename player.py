@@ -61,10 +61,10 @@ class Player:
         angle = math.atan2(dx, dy)
         mvx = math.sin(angle)
         mvy = math.cos(angle)
-        if keys_pressed[pg.K_w]:
+        if keys_pressed[pg.K_w] and not self.GAME.typing:
             self.velocity[0] = mvx * PLAYER_X_SPEED * self.GAME.delta_time
             self.velocity[1] = mvy * PLAYER_Y_SPEED *self.GAME.delta_time
-        elif keys_pressed[pg.K_s]:
+        elif keys_pressed[pg.K_s] and not self.GAME.typing:
             self.velocity[0] = -(mvx * PLAYER_X_SPEED * self.GAME.delta_time)
             self.velocity[1] = -(mvy * PLAYER_Y_SPEED *self.GAME.delta_time)
         else:
