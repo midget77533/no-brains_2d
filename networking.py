@@ -82,6 +82,7 @@ class Client:
         self.c.connect((self.host,self.port))
         t = threading.Thread(target=self.receive_msg)
         t.start()
+
     def send_msg(self, msg):
         self.c.send(pickle.dumps(msg))
     def receive_msg(self):
@@ -104,16 +105,10 @@ class Client:
                     pass
 
 def start_server(host, port):
-    for a in range(10):
-        try:
-            server = Server(host, port)
-            server.start()    
-            break
-        except:
-            port += 1
+    server = Server(host, port)
+    server.start()    
+
 
 if __name__ == "__main__":
-    # host = input("HOST: ")
-    # port = input("PORT: ")
-    # start_server(host, int(port))
-    start_server('10.0.0.10', 12345)
+    start_server(socket.gethostbyname(socket.gethostname()), 56354)
+    

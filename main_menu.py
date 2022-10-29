@@ -5,34 +5,81 @@ import time
 import settings
 import threading
 from buttons import *
+from networking import *
 pg.init()
 
 default_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 100)
-
+lable_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 50)
+txt_field_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 25)
 class MainMenu:
     def __init__(self, game):
         self.GAME = game
-        self.title = {"text": "Z-RUSH", "x": 0, "y": 0, "color":(0,0,0),"font": default_font}
+        self.title = {"text": "NO BRAINS 2D", "x": 0, "y": 0, "color":(0,0,0),"font": default_font}
         self.buttons = [
-            Button(self.GAME, 0, 250, pg.image.load("assets/textures/start_btn.png"), "[START]", .5), 
-            Button(self.GAME, 0, 450, pg.image.load("assets/textures/start_btn.png"), "[SETTINGS]", .5),
-            Button(self.GAME, 0, 650, pg.image.load("assets/textures/start_btn.png"), "[QUIT]", .5)
+            Button(self.GAME, 0, 250, pg.image.load("assets/textures/start_btn.png"), "[START]", 1,1), 
+            Button(self.GAME, 0, 450, pg.image.load("assets/textures/options_btn.png"), "[SETTINGS]", 1,1),
+            Button(self.GAME, 0, 650, pg.image.load("assets/textures/quit_btn.png"), "[QUIT]",1, 1)
+        ]
+        self.lobby_btns = [
+            Button(self.GAME, 750, 610, pg.image.load("assets/textures/create_room_btn.png"), "[CREATE]", 1, 1), 
+            Button(self.GAME, 1050, 610, pg.image.load("assets/textures/join_room_btn.png"), "[JOIN]", 1, 1),
         ]
         for btn in self.buttons:
             btn = self.center_button_x(btn, self.GAME.SCREEN.get_width() / 2)
+        self.page = "main"
+        self.text_fields = [pg.Rect(330, 300, 400, 60), pg.Rect(330, 550, 400, 60)]
+        self.text_in_fields = ['', '']
+        self.selected_box = -1
     def update(self):
-        for btn in self.buttons:
-            if btn.check_click():
-                if btn.name == '[START]':
-                    self.start_game()
-                    break
-                if btn.name == '[QUIT]':
-                    self.GAME.running = False
-                    break
+        mouse_pressed = pg.mouse.get_pressed()
+        if mouse_pressed[0]:
+            x,y = pg.mouse.get_pos()
+            if self.text_fields[0].collidepoint(x,y):
+                self.selected_box = 0
+            elif self.text_fields[1].collidepoint(x,y):
+                self.selected_box = 1
+            else:
+                self.selected_box = -1
+        # for event in pg.event.get():
+        #     if event.type == pg.KEYDOWN:
+        if self.page == "main":
+            for btn in self.buttons:
+                if btn.check_click():
+                    if btn.name == '[START]':
+                        self.page = "lobby"
+                        break
+                    if btn.name == '[QUIT]':
+                        self.GAME.running = False
+                        break
+        if self.page == "lobby":
+            for btn in self.lobby_btns:
+                if btn.check_click():
+                    if btn.name == '[CREATE]':
+                        self.create_game()
+                        break
+                    if btn.name == '[JOIN]':
+                        self.join_game()
+                        break
     def draw(self):
         self.text_to_screen()
-        for btn in self.buttons:
-            btn.draw()
+        if self.page == "main":
+            
+            for btn in self.buttons:
+                btn.draw()
+        if self.page == "lobby":
+            a = self.GAME.SCREEN.get_width() 
+            b = self.GAME.SCREEN.get_height()
+            pg.draw.rect(self.GAME.SCREEN, (90,90,90), [a / 2 - (a / 1.5) / 2, b / 2 - (b / 1.5) / 2, a / 1.5, b / 1.5])
+            NAME_TXT = self.render_text("NAME:", 320, 200, False)
+            SERVER_TXT = self.render_text("SERVER:", 320, 450, False)
+            pg.draw.rect(self.GAME.SCREEN, (50,50,50), self.text_fields[0])
+            pg.draw.rect(self.GAME.SCREEN, (50,50,50), self.text_fields[1])
+            s1 = txt_field_font.render(self.text_in_fields[0], True, (0,0,0))
+            s2 = txt_field_font.render(self.text_in_fields[1], True, (0,0,0))
+            self.GAME.SCREEN.blit(s1, (self.text_fields[0].x + 10, self.text_fields[0].y + 15))
+            self.GAME.SCREEN.blit(s2, (self.text_fields[1].x + 10, self.text_fields[1].y + 15))
+            for btn in self.lobby_btns:
+                btn.draw()
     def text_objects(self):
         txt_surf = self.title["font"].render(self.title["text"], True, self.title["color"])
         return txt_surf, txt_surf.get_rect()
@@ -40,12 +87,39 @@ class MainMenu:
         text_surf, text_rect = self.text_objects()
         text_rect.center = (self.GAME.SCREEN.get_width() / 2), (100)
         self.GAME.SCREEN.blit(text_surf, text_rect)
-    def start_game(self):
+    def get_txt_obj(self, text):
+        txt_surf = lable_font.render(text, True, (255,255,255))
+        return txt_surf, txt_surf.get_rect()
+    def render_text(self,txt, x, y, c):
+        if c:
+            text_surf, text_rect = self.get_txt_obj(txt)
+            text_rect.center = (x), (y)
+            self.GAME.SCREEN.blit(text_surf, text_rect)
+        else:
+            text_surf, text_rect = self.get_txt_obj(txt)
+            text_rect.x = x
+            text_rect.y = y
+            self.GAME.SCREEN.blit(text_surf, text_rect)
+    def create_game(self):
         settings.SHOW_MENU = False
-        t = threading.Thread(target=self.GAME.client.run(), args=())
+        SERVER = socket.gethostbyname(socket.gethostname())
+        PORT = 12345
+        s = threading.Thread(target=start_server, args=(SERVER, PORT))
+        s.start()
+        t = threading.Thread(target=self.GAME.client.run(), args=(SERVER, PORT))
         t.start()
         self.GAME.client.send_msg(["[INIT]", self.GAME.name])
         self.GAME.client_made = True
+        self.GAME.name = self.text_in_fields[0]
+        print("[START]")
+    def join_game(self):
+        settings.SHOW_MENU = False
+        SERVER , PORT = self.text_in_fields[1].split(":")
+        t = threading.Thread(target=self.GAME.client.run(), args=(SERVER, int(PORT)))
+        t.start()
+        self.GAME.client.send_msg(["[INIT]", self.GAME.name])
+        self.GAME.client_made = True
+        self.GAME.name = self.text_in_fields[0]
         print("[START]")
     def on_mouse_press(self):
         self.start_game()

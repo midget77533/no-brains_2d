@@ -18,8 +18,8 @@ class Game:
         pg.init()
         pg.display.set_caption(TITLE)
     def new_game(self):
-        self.name = input("username: ")
-        print(self.name)
+        self.name = "player" #input("username: ")
+
         self.running = True
         self.SCREEN = pg.display.set_mode(RES) 
         self.MENU = MainMenu(self)
@@ -36,6 +36,7 @@ class Game:
         self.typing = False
         settings.CAMERA_TARGET = self.player
     def run(self):
+        #self.MENU = MainMenu(self)
         self.SCREEN = pg.display.set_mode(RES)
         if FULL_SCREEN:
             self.SCREEN = pg.display.set_mode(RES, pg.FULLSCREEN)
@@ -59,9 +60,12 @@ class Game:
                             self.chat_text += event.unicode
                 if event.type == pg.KEYDOWN and event.key == pg.K_t:
                     self.typing = True
-
-
-
+                if event.type == pg.KEYDOWN:
+                    if self.MENU.selected_box >= 0:
+                        if event.key == pg.K_BACKSPACE:
+                            self.MENU.text_in_fields[self.MENU.selected_box] = self.MENU.text_in_fields[self.MENU.selected_box][:-1]
+                        elif len(self.MENU.text_in_fields[self.MENU.selected_box]) < 15:
+                            self.MENU.text_in_fields[self.MENU.selected_box] += event.unicode
             self.set_delta_time()
             self.update()
             self.draw()

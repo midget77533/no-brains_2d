@@ -1,12 +1,12 @@
 import pygame as pg
 
 class Button:
-    def __init__(self, game, x, y, image, name, scale):
+    def __init__(self, game, x, y, image, name, x_scale, y_scale):
         self.GAME = game
         width = image.get_width()
         height = image.get_height()
         self.image = image
-        self.image = pg.transform.scale(image, (int(width * scale * 2), int(height * scale)))
+        self.image = pg.transform.scale(image, (int(width * x_scale), int(height * y_scale)))
         self.rect = self.image.get_rect()
         self.rect.topleft = (x,y)
         self.clicked = False
