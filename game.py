@@ -1,3 +1,4 @@
+from os import error
 import pygame as pg
 from settings import *
 from main_menu import *
@@ -13,6 +14,7 @@ import pickle
 default_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 15)
 msg_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 30)
 chat_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 20)
+
 class Game:
     def __init__(self):
         pg.init()
@@ -29,7 +31,7 @@ class Game:
         self.delta_time = 1
         self.prev_time = 0
         self.camera = Camera(self, self.player)
-        self.game_objects = [GameObject(self,[800, 400], [pg.image.load("assets/textures/start_btn.png")], True)]
+        self.game_objects = [GameObject(self, [200, 200], [pg.image.load('assets/textures/start_btn.png')], False)]
         self.players = []
         self.client = self.client = Client('10.0.0.10', 12345)
         self.chat_text = ""
@@ -46,19 +48,26 @@ class Game:
                     self.running = False
                     pg.quit()
                     print("[QUIT GAME]")
-                    self.client.send_msg([self.client.id, "[QUIT]"])
+                    self.client.send_msg([self.client.id, "[QUIT]", self.name])
                     sys.exit()
                 if event.type == pg.KEYDOWN:
                     if self.typing:
                         if event.key == pg.K_RETURN:
+                            # if self.chat_text[0] == "/":
+                            #     self.client.send_msg(["[MSG]", f"{self.chat_text)}"])
+                            #     print(self.chat_text)
+                            #     self.chat_text = ""
+                            #     self.typing = False
+                            # else:
                             self.client.send_msg(["[MSG]", f"<{self.name}> {self.chat_text}"])
                             self.chat_text = ""
                             self.typing = False
-                        if event.key == pg.K_BACKSPACE:
+                                
+                        if event.key == pg.K_BACKSPACE and len(self.chat_text) > 0:
                             self.chat_text = self.chat_text[:-1]
                         else:
                             self.chat_text += event.unicode
-                if event.type == pg.KEYDOWN and event.key == pg.K_t:
+                if event.type == pg.KEYDOWN and event.key == pg.K_t and not settings.SHOW_MENU:
                     self.typing = True
                 if event.type == pg.KEYDOWN:
                     if self.MENU.selected_box >= 0:
@@ -77,7 +86,7 @@ class Game:
         if settings.SHOW_MENU:
             self.MENU.update()
         else:
-            self.player.update()
+            self.player.update()            
         self.camera.update()
     def draw(self):
         self.clear_screen()
@@ -118,7 +127,10 @@ class Game:
             for m in range(len(self.client.visible_messages)):
                 msg = self.client.visible_messages[m]
                 if msg[1] > 0:
-                    surf = msg_font.render(msg[0], True, (0,0,0))
+                    color = (0,0,0)
+                    if msg[0].split(":")[0] == "[SERVER]":
+                        color = (201, 60, 79)
+                    surf = msg_font.render(msg[0], True, color)
                     s = pg.Surface((surf.get_width() + 10, surf.get_height()))
                     s.fill((0,0,0))
                     s.set_alpha(30)
@@ -127,9 +139,6 @@ class Game:
                     self.SCREEN.blit(s, (0, self.SCREEN.get_height() - p + (m * a) - 150))
                     self.SCREEN.blit(surf, (0, self.SCREEN.get_height() - p + (m * a) - 150))
                     msg[1] -= 1 / 60 * self.delta_time
-
-
-            
         pg.display.update()
     def text_objects(self, txt):
         txt_surf = default_font.render(txt, True, (0,0,0))

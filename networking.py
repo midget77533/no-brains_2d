@@ -25,13 +25,16 @@ class Server:
 
     def handle_clients(self, c, a):
         while True:   
-            try:
+            #try:
                 data = c.recv(2048)
                 data_v = pickle.loads(data)
                 for p in range(len(self.players)):
                     if self.players[p][0] == data_v[0]:
-                        if self.players[p][1] == "[QUIT]":
+                        if data_v[1] == "[QUIT]":
+                            for conn in self.connections:
+                                conn.send(pickle.dumps(["[MSG]",f"[SERVER]: {data_v[2]} left"]))
                             self.players.remove(self.players[p])
+
                 if data_v[0] == "[INIT]":
                     aj = False
                     for i in self.players:
@@ -42,6 +45,9 @@ class Server:
                         self.players.append([a, -300, 0, 0, 0, data_v[1]])
                         d = ["[URNUM]", a]
                         c.send(pickle.dumps(d))
+                    for conn in self.connections:
+                        conn.send(pickle.dumps(["[MSG]",f"[SERVER]: {data_v[1]} joined"]))
+
                 elif data_v[0] == "[MSG]":
                     for conn in self.connections:
                         conn.send(pickle.dumps(["[MSG]",f"{data_v[1]}"]))
@@ -58,14 +64,17 @@ class Server:
                             break
                 if not data:
                     self.connections.remove(c)
-                    for p in self.players:
-                        if p[0] == a:
-                            self.players.remove(p)
+
+                    for p in range(len(self.players)):
+                        if self.players[p][0] == a:
+                            for conn in self.connections:
+                                conn.send(pickle.dumps(["[MSG]",f"[SERVER]: {self.players[p][5]} left"]))
+                            self.players.remove(self.players[p])
                             break
                     c.close()
                     break
-            except:
-                pass
+            #except:
+                #pass
 class Client:
     def __init__(self, host, port):
         self.host = host
@@ -77,6 +86,7 @@ class Client:
         self.players = []
         self.messages = []
         self.visible_messages = []
+        self.new_cmds = []
     def run(self):
         self.c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.c.connect((self.host,self.port))
