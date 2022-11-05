@@ -3,19 +3,20 @@ import threading
 import pickle
 
 class Server:
-    def __init__(self, host, port):
+    def __init__(self, host, port, game):
         self.host = host
         self.port = port
         self.connections = []
         self.players = []
         self.p_num = 0
+        self.GAME = game
         
     def start(self):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.bind((self.host, self.port))
-        self.s.listen()
+        self.s.listen(2)
         print(f'server succsesfully made on {self.host, self.port}')
-        while True:
+        while self.GAME.running:
             conn, addr = self.s.accept()
             CT = threading.Thread(target=self.handle_clients, args=(conn, addr))
             CT.daemon = True
@@ -24,8 +25,8 @@ class Server:
             self.connections.append(conn)
 
     def handle_clients(self, c, a):
-        while True:   
-            #try:
+        while self.GAME.running:   
+            try:
                 data = c.recv(2048)
                 data_v = pickle.loads(data)
                 for p in range(len(self.players)):
@@ -51,8 +52,15 @@ class Server:
                 elif data_v[0] == "[MSG]":
                     for conn in self.connections:
                         conn.send(pickle.dumps(["[MSG]",f"{data_v[1]}"]))
+                elif data_v[0] == "[MAP_CHANGE]":
+                    for conn in self.connections:
+                        if conn != c:
+                            conn.send(pickle.dumps(data_v))
                 elif data_v == "[GET_DATA]":
                     c.send(pickle.dumps(["[DATA]",self.players]))
+                elif data_v == "[PLAY]":
+                    for conn in self.connections:
+                        conn.send(pickle.dumps("[PLAY]"))
                 else:
                     for p in self.players:
                         if p[0] == data_v[0]:
@@ -64,7 +72,6 @@ class Server:
                             break
                 if not data:
                     self.connections.remove(c)
-
                     for p in range(len(self.players)):
                         if self.players[p][0] == a:
                             for conn in self.connections:
@@ -73,8 +80,8 @@ class Server:
                             break
                     c.close()
                     break
-            #except:
-                #pass
+            except:
+                pass
 class Client:
     def __init__(self, host, port):
         self.host = host
@@ -87,7 +94,11 @@ class Client:
         self.messages = []
         self.visible_messages = []
         self.new_cmds = []
+        self.running = False
+        self.rsm = False
+        self.lmc = []
     def run(self):
+        self.running = True
         self.c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.c.connect((self.host,self.port))
         t = threading.Thread(target=self.receive_msg)
@@ -96,9 +107,11 @@ class Client:
     def send_msg(self, msg):
         self.c.send(pickle.dumps(msg))
     def receive_msg(self):
-        while True:
+        while self.running:
             received_msg = self.c.recv(2048)
             msg = pickle.loads(received_msg)
+            if msg == "[PLAY]":
+                self.rsm = True
             if msg[0] == "[URNUM]":
                 self.id = msg[1]
             if msg[0] == "[DATA]":
@@ -113,9 +126,10 @@ class Client:
                             self.visible_messages.remove(m)
                 except:
                     pass
-
-def start_server(host, port):
-    server = Server(host, port)
+            if msg[0] == "[MAP_CHANGE]":
+                self.lmc = msg
+def start_server(host, port, g):
+    server = Server(host, port, g)
     server.start()    
 
 

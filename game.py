@@ -9,11 +9,18 @@ import settings
 from camera import *
 from game_object import *
 from networking import *
-import pickle
+import pickle, os, csv
 
 default_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 15)
 msg_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 30)
+
 chat_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 20)
+
+def get_image(sheet, width, height,color, col, row):
+    img = pg.Surface((width, height))
+    img.blit(sheet, (0,0), ((col * width),(row * height),width,height))
+    img.set_colorkey(color)
+    return img
 
 class Game:
     def __init__(self):
@@ -27,38 +34,40 @@ class Game:
         self.MENU = MainMenu(self)
         self.CLOCK = pg.time.Clock()
         self.buttons = []
-        self.player = Player(self, [-400, 0])
+        self.player = Player(self, [64, 16 * 64])
         self.delta_time = 1
         self.prev_time = 0
         self.camera = Camera(self, self.player)
-        self.game_objects = [GameObject(self, [200, 200], [pg.image.load('assets/textures/start_btn.png')], False)]
+        self.game_objects = []
         self.players = []
-        self.client = self.client = Client('10.0.0.10', 12345)
+        self.client = self.client = Client(socket.gethostbyname(socket.gethostname()), 12345)
         self.chat_text = ""
         self.typing = False
+        self.mouse_still_down = False
+        self.play_type = "undecided"
+        self.enough_players = False
+        self.level = 0
         settings.CAMERA_TARGET = self.player
     def run(self):
         #self.MENU = MainMenu(self)
+        self.load_level_data()
         self.SCREEN = pg.display.set_mode(RES)
         if FULL_SCREEN:
             self.SCREEN = pg.display.set_mode(RES, pg.FULLSCREEN)
         while self.running:
+            self.CLOCK.tick(FPS)
             for event in pg.event.get():
                 if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
                     self.running = False
+                    self.client.running = False
                     pg.quit()
                     print("[QUIT GAME]")
+                    
                     self.client.send_msg([self.client.id, "[QUIT]", self.name])
                     sys.exit()
                 if event.type == pg.KEYDOWN:
                     if self.typing:
                         if event.key == pg.K_RETURN:
-                            # if self.chat_text[0] == "/":
-                            #     self.client.send_msg(["[MSG]", f"{self.chat_text)}"])
-                            #     print(self.chat_text)
-                            #     self.chat_text = ""
-                            #     self.typing = False
-                            # else:
                             self.client.send_msg(["[MSG]", f"<{self.name}> {self.chat_text}"])
                             self.chat_text = ""
                             self.typing = False
@@ -83,63 +92,146 @@ class Game:
         self.delta_time = (now - self.prev_time) * FPS
         self.prev_time = now
     def update(self):
+        if len(self.client.players) > 0:
+            self.enough_players = True
         if settings.SHOW_MENU:
+            if self.client.rsm:
+                settings.SHOW_MENU = False
             self.MENU.update()
         else:
-            self.player.update()            
+            lmc = self.client.lmc
+            if lmc != []:
+                if lmc[1] == "[0]":
+                    num = lmc[2].replace("[", "")
+                    num = num.replace("]", "")
+                    num = int(num)
+                    for obj in self.game_objects:
+                        if obj.type == num:
+                            obj.active = not obj.active
+                if lmc[1] == "[1]":
+                    self.player.reset_pos()
+                self.client.lmc = []
+            self.player.update()          
         self.camera.update()
+
     def draw(self):
         self.clear_screen()
         if settings.SHOW_MENU:
+            if self.client.running:
+                self.players = self.client.players
+                self.client.send_msg("[GET_DATA]")
             self.MENU.draw()
         else:
             for go in self.game_objects:
                 go.update()
                 go.draw()
             self.player.draw()
-            self.client.send_msg("[GET_DATA]")
-            self.players = self.client.players
-            p = self.player
-            for op in self.players:
-                if op[0] != self.client.id and op[1] != "[QUIT]":
-                    dx = -self.camera.pos[0] + op[1] + self.camera.offset[0]
-                    dy = -self.camera.pos[1] + op[2] + self.camera.offset[1]
-                    if op[3] == 0:
-                        self.SCREEN.blit(self.player.left_sprites[int(op[4])], (dx, dy))
-                    else:
-                        self.SCREEN.blit(self.player.right_sprites[int(op[4])], (dx, dy))
+            if self.play_type == "online":
+                self.client.send_msg("[GET_DATA]")
+                self.players = self.client.players
+                p = self.player
+                for op in self.players:
+                    if op[0] != self.client.id and op[1] != "[QUIT]":
+                        dx = -self.camera.pos[0] + op[1] + self.camera.offset[0]
+                        dy = -self.camera.pos[1] + op[2] + self.camera.offset[1]
+                        if op[3] == 0:
+                            self.SCREEN.blit(self.player.left_sprites[int(op[4])], (dx, dy))
+                        else:
+                            self.SCREEN.blit(self.player.right_sprites[int(op[4])], (dx, dy))
 
-                    self.text_to_screen(op[5], dx + 48, dy - 20)
-                    r1 = [p.pos[0], p.pos[1], p.coll_rect[2], p.coll_rect[3]]
-                    r2 = [op[1], op[2], p.coll_rect[2], p.coll_rect[3]]
-                    if r1[0] + r1[2] > r2[0] and r2[0] + r2[2] > r1[0] and r1[1] + r1[3] > r2[1] and r2[1] + r2[3] > r1[1]:
-                        if r1[1] > r2[1]:
-                            self.player.draw()
-                
-            self.text_to_screen(self.name, self.player.draw_pos[0] + 48, self.player.draw_pos[1] - 20)
-            if self.typing:
-                s = pg.Surface((self.SCREEN.get_width(), 100))
-                s.fill((0,0,0))
-                s.set_alpha(80)
-                surf = msg_font.render(self.chat_text, True, (0,0,0))
-                self.SCREEN.blit(s, (0,self.SCREEN.get_height() - 40))
-                self.SCREEN.blit(surf, (0, self.SCREEN.get_height() - 40))
-            for m in range(len(self.client.visible_messages)):
-                msg = self.client.visible_messages[m]
-                if msg[1] > 0:
-                    color = (0,0,0)
-                    if msg[0].split(":")[0] == "[SERVER]":
-                        color = (201, 60, 79)
-                    surf = msg_font.render(msg[0], True, color)
-                    s = pg.Surface((surf.get_width() + 10, surf.get_height()))
+                        self.text_to_screen(op[5], dx + 32, dy - 20)
+                        r1 = [p.pos[0], p.pos[1], p.coll_rect[2], p.coll_rect[3]]
+                        r2 = [op[1], op[2], p.coll_rect[2], p.coll_rect[3]]
+                        if r1[0] + r1[2] > r2[0] and r2[0] + r2[2] > r1[0] and r1[1] + r1[3] > r2[1] and r2[1] + r2[3] > r1[1]:
+                            if r1[1] > r2[1]:
+                                self.player.draw()
+                    
+                self.text_to_screen(self.name, self.player.draw_pos[0] + 32, self.player.draw_pos[1] - 20)
+                if self.typing:
+                    s = pg.Surface((self.SCREEN.get_width(), 100))
                     s.fill((0,0,0))
-                    s.set_alpha(30)
-                    a = surf.get_height()
-                    p = (len(self.client.visible_messages) * a)
-                    self.SCREEN.blit(s, (0, self.SCREEN.get_height() - p + (m * a) - 150))
-                    self.SCREEN.blit(surf, (0, self.SCREEN.get_height() - p + (m * a) - 150))
-                    msg[1] -= 1 / 60 * self.delta_time
+                    s.set_alpha(80)
+                    surf = msg_font.render(self.chat_text, True, (0,0,0))
+                    self.SCREEN.blit(s, (0,self.SCREEN.get_height() - 40))
+                    self.SCREEN.blit(surf, (0, self.SCREEN.get_height() - 40))
+                for m in range(len(self.client.visible_messages)):
+                    msg = self.client.visible_messages[m]
+                    if msg[1] > 0:
+                        color = (0,0,0)
+                        if msg[0].split(":")[0] == "[SERVER]":
+                            color = (201, 60, 79)
+                        surf = msg_font.render(msg[0], True, color)
+                        s = pg.Surface((surf.get_width() + 10, surf.get_height()))
+                        s.fill((0,0,0))
+                        s.set_alpha(30)
+                        a = surf.get_height()
+                        p = (len(self.client.visible_messages) * a)
+                        self.SCREEN.blit(s, (0, self.SCREEN.get_height() - p + (m * a) - 150))
+                        self.SCREEN.blit(surf, (0, self.SCREEN.get_height() - p + (m * a) - 150))
+                        msg[1] -= 1 / 60 * self.delta_time
+
         pg.display.update()
+    def load_level_data(self):
+        img_list = []
+
+        BLACK = (0,0,0)
+
+        images = []
+        tile_sheet = pg.image.load('assets/textures/brick_tile_sheet.png')
+        t1 = get_image(tile_sheet,64,64,BLACK, 0, 0)
+        t2 = get_image(tile_sheet,64,64,BLACK, 1, 0)
+        t3 = get_image(tile_sheet,64,64,BLACK, 2, 0)
+        t4 = get_image(tile_sheet,64,64,BLACK, 0, 1)
+        t5 = get_image(tile_sheet,64,64,BLACK, 1, 1)
+        t6 = get_image(tile_sheet,64,64,BLACK, 2, 1)
+        t7 = get_image(tile_sheet,64,64,BLACK, 0, 2)
+        t8 = get_image(tile_sheet,64,64,BLACK, 1, 2)
+        t9 = get_image(tile_sheet,64,64,BLACK, 2, 2)
+
+        t10 = get_image(tile_sheet,64,64,BLACK, 3, 0)
+        t11 = get_image(tile_sheet,64,64,BLACK, 4, 0)
+        t12 = get_image(tile_sheet,64,64,BLACK, 5, 0)
+        t13 = get_image(tile_sheet,64,64,BLACK, 3, 1)
+        t14 = get_image(tile_sheet,64,64,BLACK, 4, 1)
+        t15 = get_image(tile_sheet,64,64,BLACK, 5, 1)
+        t16 = get_image(tile_sheet,64,64,BLACK, 3, 2)
+        t17 = get_image(tile_sheet,64,64,BLACK, 4, 2)
+        t18 = get_image(tile_sheet,64,64,BLACK, 5, 2)
+        t19 = get_image(tile_sheet,64,64,BLACK, 6, 0)
+        images.append(t1)
+        images.append(t2)
+        images.append(t3)
+        images.append(t4)
+        images.append(t5)
+        images.append(t6)
+        images.append(t7)
+        images.append(t8)
+        images.append(t9)
+
+        images.append(t10)
+        images.append(t11)
+        images.append(t12)
+        images.append(t13)
+        images.append(t14)
+        images.append(t15)
+        images.append(t16)
+        images.append(t17)
+        images.append(t18)
+        images.append(t18)
+        images.append(t19)
+
+        self.game_objects = []
+
+        TILE_SPACING = 64
+        with open(os.path.join('levels',f'level{self.level}_data.csv'), newline='') as csvfile:
+            reader = csv.reader(csvfile, delimiter = ',')
+            for x, row in enumerate(reader):
+                for y, tile in enumerate(row):
+                    if int(tile) >= 0:
+                        if int(tile) < 9:
+                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile)))
+                        elif int(tile) > 9:
+                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], False, int(tile)))
     def text_objects(self, txt):
         txt_surf = default_font.render(txt, True, (0,0,0))
         return txt_surf, txt_surf.get_rect()

@@ -15,7 +15,7 @@ caption_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 15)
 class MainMenu:
     def __init__(self, game):
         self.GAME = game
-        self.title = {"text": "BRAINLESS WALLOP", "x": 0, "y": 0, "color":(0,0,0),"font": default_font}
+        self.title = {"text": "ROUNDED EDGE WORLD", "x": 0, "y": 0, "color":(0,0,0),"font": default_font}
         self.buttons = [
             Button(self.GAME, 0, 250, pg.image.load("assets/textures/start_btn.png"), "[START]", 1,1), 
             Button(self.GAME, 0, 450, pg.image.load("assets/textures/options_btn.png"), "[SETTINGS]", 1,1),
@@ -25,14 +25,21 @@ class MainMenu:
             Button(self.GAME, 750, 610, pg.image.load("assets/textures/create_room_btn.png"), "[CREATE]", 1, 1), 
             Button(self.GAME, 1050, 610, pg.image.load("assets/textures/join_room_btn.png"), "[JOIN]", 1, 1),
         ]
+        self.back_btn = Button(self.GAME, 15, 10, pg.image.load("assets/textures/back_btn.png"), "[BACK]", 1, 1)
         for btn in self.buttons:
             btn = self.center_button_x(btn, self.GAME.SCREEN.get_width() / 2)
-        self.page = "main"
+        self.spb = Button(self.GAME, 370, 300, pg.image.load("assets/textures/single_player_btn.png"), "[SINGLE_PLAYER]", 1, 1)
+        self.mpb = Button(self.GAME, 870, 300, pg.image.load("assets/textures/multi_player_btn.png"), "[MULTI_PLAYER]", 1, 1)
+        self.play_btn = Button(self.GAME, 1050, 610, pg.image.load("assets/textures/play_btn.png"), "[PLAY]", 1, 1)
+        self.page = "main_menu"
         self.text_fields = [pg.Rect(330, 300, 410, 60), pg.Rect(330, 550, 410, 60)]
-        self.text_in_fields = ['', '']
+        self.text_in_fields = ['', socket.gethostbyname(socket.gethostname())]
         self.selected_box = -1
+        self.bbtn_destination = "main_menu"
+        self.players = []
     def update(self):
         mouse_pressed = pg.mouse.get_pressed()
+        self.players = self.GAME.players
         if mouse_pressed[0]:
             x,y = pg.mouse.get_pos()
             if self.text_fields[0].collidepoint(x,y):
@@ -43,16 +50,35 @@ class MainMenu:
                 self.selected_box = -1
         # for event in pg.event.get():
         #     if event.type == pg.KEYDOWN:
-        if self.page == "main":
+        if self.page == "main_menu":
             for btn in self.buttons:
                 if btn.check_click():
                     if btn.name == '[START]':
-                        self.page = "lobby"
+                        self.bbtn_destination = self.page
+                        self.page = "choice_menu"
                         break
                     if btn.name == '[QUIT]':
                         self.GAME.running = False
                         break
-        if self.page == "lobby":
+        if self.page == "choice_menu":
+            self.bbtn_destination = "main_menu"
+            if self.mpb.check_click():
+                self.bbtn_destination = self.page
+                self.page = "server_menu"
+                self.GAME.play_type = "online"
+            if self.spb.check_click():
+                settings.SHOW_MENU = False
+                self.bbtn_destination = self.page
+                self.GAME.play_type = "offline"
+        if self.page == "lobby_menu":
+            #if len(self.players) > 0:
+            self.GAME.enough_players
+            if self.GAME.enough_players:
+                if self.play_btn.check_click():
+                    self.GAME.client.send_msg("[PLAY]")
+                    settings.SHOW_MENU = False
+        if self.page == "server_menu":
+            self.bbtn_destination = "choice_menu"
             for btn in self.lobby_btns:
                 if btn.check_click():
                     try:
@@ -65,11 +91,16 @@ class MainMenu:
                     except:
                         pass
     def draw(self):
-        self.text_to_screen()
-        if self.page == "main":
+        if self.page == "main_menu":
+            self.text_to_screen()
             for btn in self.buttons:
                 btn.draw()
-        if self.page == "lobby":
+        elif self.page != "lobby_menu":
+            self.back_btn.draw()
+            if self.back_btn.check_click():
+                self.page = self.bbtn_destination
+
+        if self.page == "server_menu":
             a = self.GAME.SCREEN.get_width() 
             b = self.GAME.SCREEN.get_height()
             pg.draw.rect(self.GAME.SCREEN, (90,90,90), [a / 2 - (a / 1.5) / 2, b / 2 - (b / 1.5) / 2, a / 1.5, b / 1.5])
@@ -85,6 +116,20 @@ class MainMenu:
             self.GAME.SCREEN.blit(s2, (self.text_fields[1].x + 10, self.text_fields[1].y + 15))
             for btn in self.lobby_btns:
                 btn.draw()
+        if self.page == "lobby_menu":
+            a = self.GAME.SCREEN.get_width() 
+            b = self.GAME.SCREEN.get_height()
+            pg.draw.rect(self.GAME.SCREEN, (90,90,90), [a / 2 - (a / 1.5) / 2, b / 2 - (b / 1.5) / 2, a / 1.5, b / 1.5])
+            self.render_text("PLAYERS", 320, 200, False, lable_font)
+            for i in range(len(self.players)):
+                pn = self.players[i][5]
+                pg.draw.rect(self.GAME.SCREEN, (30,30,30), [340, 290 + i * 120, 500, 70])
+                self.render_text(pn, 350, 310 + i * 120, False, txt_field_font)
+            if self.GAME.enough_players:
+                self.play_btn.draw()
+        if self.page == "choice_menu":
+            self.spb.draw()
+            self.mpb.draw()
     def text_objects(self):
         txt_surf = self.title["font"].render(self.title["text"], True, self.title["color"])
         return txt_surf, txt_surf.get_rect()
@@ -106,10 +151,11 @@ class MainMenu:
             text_rect.y = y
             self.GAME.SCREEN.blit(text_surf, text_rect)
     def create_game(self):
-        settings.SHOW_MENU = False
-        SERVER = socket.gethostbyname(socket.gethostname())
+        self.bbtn_destination = self.page
+        self.page = "lobby_menu"
+        SERVER = self.text_in_fields[1]
         PORT = 12345
-        s = threading.Thread(target=start_server, args=(SERVER, PORT))
+        s = threading.Thread(target=start_server, args=(SERVER, PORT, self.GAME))
         s.start()
         t = threading.Thread(target=self.GAME.client.run(), args=(SERVER, PORT))
         t.start()
@@ -118,7 +164,7 @@ class MainMenu:
         self.GAME.client.send_msg(["[INIT]", self.GAME.name])
         print("[START]")
     def join_game(self):
-        settings.SHOW_MENU = False
+        self.page = "lobby_menu"
         SERVER  = self.text_in_fields[1]
         PORT = 12345
         t = threading.Thread(target=self.GAME.client.run(), args=(SERVER, PORT))
