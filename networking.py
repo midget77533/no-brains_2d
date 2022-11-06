@@ -10,7 +10,8 @@ class Server:
         self.players = []
         self.p_num = 0
         self.GAME = game
-        
+        self.pfn = 0
+        self.current_level = 1
     def start(self):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.bind((self.host, self.port))
@@ -35,7 +36,6 @@ class Server:
                             for conn in self.connections:
                                 conn.send(pickle.dumps(["[MSG]",f"[SERVER]: {data_v[2]} left"]))
                             self.players.remove(self.players[p])
-
                 if data_v[0] == "[INIT]":
                     aj = False
                     for i in self.players:
@@ -53,8 +53,16 @@ class Server:
                     for conn in self.connections:
                         conn.send(pickle.dumps(["[MSG]",f"{data_v[1]}"]))
                 elif data_v[0] == "[MAP_CHANGE]":
-                    for conn in self.connections:
-                        if conn != c:
+                    if data_v[1] == "[1]":
+                        self.pfn = 0
+                    if data_v[1] == "[3]":
+                        self.pfn += 1
+                        #if self.pfn == len(self.connections):
+                        self.current_level += 1
+                        self.pfn = 0
+                        data_v[2] = self.current_level
+                    if (data_v[1] == "[3]") or data_v[1] != "[3]":
+                        for conn in self.connections:
                             conn.send(pickle.dumps(data_v))
                 elif data_v == "[GET_DATA]":
                     c.send(pickle.dumps(["[DATA]",self.players]))
@@ -69,7 +77,9 @@ class Server:
                             p[2] = data_v[2]
                             p[3] = data_v[3]
                             p[4] = data_v[4]
+                            
                             break
+                    
                 if not data:
                     self.connections.remove(c)
                     for p in range(len(self.players)):
@@ -81,7 +91,7 @@ class Server:
                     c.close()
                     break
             except:
-                pass
+                break
 class Client:
     def __init__(self, host, port):
         self.host = host
@@ -99,6 +109,7 @@ class Client:
         self.lmc = []
     def run(self):
         self.running = True
+        print('running')
         self.c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.c.connect((self.host,self.port))
         t = threading.Thread(target=self.receive_msg)

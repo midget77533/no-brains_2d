@@ -65,7 +65,7 @@ class MainMenu:
             if self.mpb.check_click():
                 self.bbtn_destination = self.page
                 self.page = "server_menu"
-                self.GAME.play_type = "online"
+
             if self.spb.check_click():
                 settings.SHOW_MENU = False
                 self.bbtn_destination = self.page
@@ -81,15 +81,14 @@ class MainMenu:
             self.bbtn_destination = "choice_menu"
             for btn in self.lobby_btns:
                 if btn.check_click():
-                    try:
-                        if btn.name == '[CREATE]':
-                            self.create_game()
-                            break
-                        if btn.name == '[JOIN]':
-                            self.join_game()
-                            break
-                    except:
-                        pass
+
+                    if btn.name == '[CREATE]':
+                        self.create_game()
+                        break
+                    if btn.name == '[JOIN]':
+                        self.join_game()
+                        break
+
     def draw(self):
         if self.page == "main_menu":
             self.text_to_screen()
@@ -153,25 +152,25 @@ class MainMenu:
     def create_game(self):
         self.bbtn_destination = self.page
         self.page = "lobby_menu"
-        SERVER = self.text_in_fields[1]
+        SERVER = socket.gethostbyname(socket.gethostname())
         PORT = 12345
+        self.GAME.client = Client(SERVER, PORT)
         s = threading.Thread(target=start_server, args=(SERVER, PORT, self.GAME))
         s.start()
-        t = threading.Thread(target=self.GAME.client.run(), args=(SERVER, PORT))
-        t.start()
-        self.GAME.client_made = True
+        self.GAME.client.run()
         self.GAME.name = self.text_in_fields[0]
         self.GAME.client.send_msg(["[INIT]", self.GAME.name])
+        self.GAME.play_type = "online"
         print("[START]")
     def join_game(self):
         self.page = "lobby_menu"
-        SERVER  = self.text_in_fields[1]
+        SERVER = self.text_in_fields[1]
         PORT = 12345
-        t = threading.Thread(target=self.GAME.client.run(), args=(SERVER, PORT))
-        t.start()
-        self.GAME.client_made = True
+        self.GAME.client = Client(SERVER, PORT)
+        self.GAME.client.run()
         self.GAME.name = self.text_in_fields[0]
         self.GAME.client.send_msg(["[INIT]", self.GAME.name])
+        self.GAME.play_type = "online"
         print("[START]")
     def on_mouse_press(self):
         self.start_game()

@@ -35,9 +35,11 @@ class Player:
         self.terminal_velocity = 35
         self.jump_power = 16
         self.grounded = False
+        self.completed_level = False
         self.tb1 = Button(self.GAME, 20, 100, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)
         self.tb2 = Button(self.GAME, 20, 170, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)
         self.tb3 = Button(self.GAME, 20, 240, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)
+        self.pos_locked = False
         images = []
         BLACK = (0,0,0)
         tile_sheet = pg.image.load('assets/textures/brick_tile_sheet.png')
@@ -77,8 +79,8 @@ class Player:
     def update(self):
         keys_pressed = pg.key.get_pressed()
         mx, my = pg.mouse.get_pos()
-        self.pos[0] += self.velocity[0] * self.GAME.delta_time
-        if not keys_pressed[pg.K_e]:
+        if not self.pos_locked:
+            self.pos[0] += self.velocity[0] * self.GAME.delta_time
             self.pos[1] += self.velocity[1] * self.GAME.delta_time
         if self.velocity[0] != 0 or self.velocity[1] != 0:
             if self.GAME.play_type == "online":
@@ -89,32 +91,39 @@ class Player:
             num = self.tb1.name.replace("]", "")
             num = num.split("|")
             num = int(num[1])
+            active = False
             for obj in self.GAME.game_objects:
                 if obj.type == num:
                     obj.active = not obj.active
+                    if obj.active:
+                        active = True
             if self.GAME.play_type == "online":
-                self.GAME.client.send_msg(["[MAP_CHANGE]", "[0]", f"[{num}]"])
+                self.GAME.client.send_msg(["[MAP_CHANGE]", "[0]", f"[{num}]", active])
         if self.tb2.check_click():
             num = self.tb2.name.replace("]", "")
             num = num.split("|")
             num = int(num[1])
-
+            active = False
             for obj in self.GAME.game_objects:
                 if obj.type == num:
                     obj.active = not obj.active
+                    if obj.active:
+                        active = True
             if self.GAME.play_type == "online":
-                self.GAME.client.send_msg(["[MAP_CHANGE]", "[0]", f"[{num}]"])
+                self.GAME.client.send_msg(["[MAP_CHANGE]", "[0]", f"[{num}]", active])
         if self.tb3.check_click():
             num = self.tb3.name.replace("]", "")
             num = num.split("|")
             num = int(num[1])
+            active = False
             for obj in self.GAME.game_objects:
                 if obj.type == num:
                     obj.active = not obj.active
+                    if obj.active:
+                        active = True
             if self.GAME.play_type == "online":
-                self.GAME.client.send_msg(["[MAP_CHANGE]", "[0]", f"[{num}]"])
+                self.GAME.client.send_msg(["[MAP_CHANGE]", "[0]", f"[{num}]", active])
         self.move()
-
     def check_collision(self, pos):
         for go in self.GAME.game_objects:
             if go.collidable and go.active:
@@ -139,7 +148,7 @@ class Player:
                     self.velocity[0] = 0    
 
             #launch pad
-            if (pos[0] + self.coll_rect[2] - 5 > go.pos[0] and pos[0] + 5 < go.pos[0] + go.rect[2] and pos[1] + self.coll_rect[3] > go.pos[1] and pos[1] < go.pos[1] + go.rect[3]) and go.type >= 18:
+            if (pos[0] + self.coll_rect[2] - 5 > go.pos[0] and pos[0] + 5 < go.pos[0] + go.rect[2] and pos[1] + self.coll_rect[3] > go.pos[1] and pos[1] < go.pos[1] + go.rect[3]) and go.type == 18:
                 self.velocity[1] = -40
             #keys
             if (pos[0] + self.coll_rect[2] > go.pos[0] and pos[0] < go.pos[0] + go.rect[2] and pos[1] + self.coll_rect[3] > go.pos[1] and pos[1] < go.pos[1] + go.rect[3]) and go.type < 18 and go.type > 8:
@@ -148,19 +157,34 @@ class Player:
                     self.tb1.image = self.button_target_sprites[go.type - 9]
                     self.tb1.rect = self.tb1.image.get_rect()
                     self.tb1.rect.topleft = (self.tb1.x, self.tb1.y)
+                    if self.GAME.play_type == "online":
+                        self.GAME.client.send_msg(["[MAP_CHANGE]", "[2]", go.pos])
                     self.GAME.game_objects.remove(go)
                 elif self.tb2.name == "[T|-1]":
                     self.tb2.name = f"[T|{go.type - 9}]" 
                     self.tb2.image = self.button_target_sprites[go.type - 9]
                     self.tb2.rect = self.tb2.image.get_rect()
                     self.tb2.rect.topleft = (self.tb2.x, self.tb2.y)
+                    if self.GAME.play_type == "online":
+                        self.GAME.client.send_msg(["[MAP_CHANGE]", "[2]", go.pos])
                     self.GAME.game_objects.remove(go)
                 elif self.tb3.name == "[T|-1]":
                     self.tb3.name = f"[T|{go.type - 9}]" 
                     self.tb3.image = self.button_target_sprites[go.type - 9]
                     self.tb3.rect = self.tb3.image.get_rect()
                     self.tb3.rect.topleft = (self.tb3.x, self.tb3.y)
+                    if self.GAME.play_type == "online":
+                        self.GAME.client.send_msg(["[MAP_CHANGE]", "[2]", go.pos])
                     self.GAME.game_objects.remove(go)
+            if (pos[0] + self.coll_rect[2] - 5 > go.pos[0] and pos[0] + 5 < go.pos[0] + go.rect[2] and pos[1] + self.coll_rect[3] > go.pos[1] and pos[1] < go.pos[1] + go.rect[3]) and not self.completed_level and go.type == 19:
+                self.completed_level = True
+                self.pos_locked = True
+                self.pos[1] = 64 * 20
+                if self.GAME.play_type == "online":
+                    self.GAME.client.send_msg(["[MAP_CHANGE]", "[3]", 0])
+                break
+            else:
+                self.completed_level = False
         if self.GAME.play_type == "online":
             for p in self.GAME.client.players:
                 x = p[1]
@@ -178,16 +202,18 @@ class Player:
             #         self.pos[0] = go.pos[0] + go.rect[3] + 1
             #         self.velocity[0] = 0 
     def reset_pos(self):
-        self.pos = [64, 16 * 64]
+        self.pos = [64 * 3, 16 * 64]
         self.velocity = [0,0]
         self.tb1 = Button(self.GAME, 20, 100, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)
         self.tb2 = Button(self.GAME, 20, 170, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)
         self.tb3 = Button(self.GAME, 20, 240, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)
         self.GAME.load_level_data()
+        self.completed_level = False
+        self.pos_locked = False
         
     def move(self):
         if not self.grounded and self.velocity[1] <= self.terminal_velocity:
-            self.velocity[1] += self.gravity_scale 
+            self.velocity[1] += self.gravity_scale * self.GAME.delta_time
         keys_pressed = pg.key.get_pressed()
         if keys_pressed[pg.K_r] and not self.GAME.typing:
             self.reset_pos()

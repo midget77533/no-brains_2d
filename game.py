@@ -34,19 +34,20 @@ class Game:
         self.MENU = MainMenu(self)
         self.CLOCK = pg.time.Clock()
         self.buttons = []
-        self.player = Player(self, [64, 16 * 64])
+        self.player = Player(self, [64 * 4, 16 * 64])
         self.delta_time = 1
         self.prev_time = 0
         self.camera = Camera(self, self.player)
         self.game_objects = []
         self.players = []
-        self.client = self.client = Client(socket.gethostbyname(socket.gethostname()), 12345)
+        self.client = Client(socket.gethostbyname(socket.gethostname()), 12345)
         self.chat_text = ""
         self.typing = False
         self.mouse_still_down = False
         self.play_type = "undecided"
         self.enough_players = False
-        self.level = 0
+        self.level = 1
+        self.in_game_keys = []
         settings.CAMERA_TARGET = self.player
     def run(self):
         #self.MENU = MainMenu(self)
@@ -91,41 +92,62 @@ class Game:
         now = time.time()
         self.delta_time = (now - self.prev_time) * FPS
         self.prev_time = now
+
     def update(self):
-        if len(self.client.players) > 0:
+        if self.play_type == "online" and  len(self.client.players) > 0:
             self.enough_players = True
         if settings.SHOW_MENU:
-            if self.client.rsm:
+            if self.play_type == "online" and self.client.rsm:
                 settings.SHOW_MENU = False
             self.MENU.update()
         else:
-            lmc = self.client.lmc
-            if lmc != []:
-                if lmc[1] == "[0]":
-                    num = lmc[2].replace("[", "")
-                    num = num.replace("]", "")
-                    num = int(num)
-                    for obj in self.game_objects:
-                        if obj.type == num:
-                            obj.active = not obj.active
-                if lmc[1] == "[1]":
-                    self.player.reset_pos()
-                self.client.lmc = []
+            if self.play_type == "online":
+                
+                lmc = self.client.lmc
+                change_in_keys = False
+                if lmc != []:
+                    if lmc[1] == "[0]":
+                        num = lmc[2].replace("[", "")
+                        num = num.replace("]", "")
+                        num = int(num)
+                        for obj in self.game_objects:
+                            if obj.type == num:
+                                obj.active = lmc[3]
+                    if lmc[1] == "[1]":
+                        self.player.reset_pos()
+                    if lmc[1] == "[2]":
+                        obj_pos = lmc[2]
+                        for go in self.game_objects:
+                            if go.pos == obj_pos:
+                                self.game_objects.remove(go)
+                                print('obj_destroyed')
+                    if lmc[1] == "[3]":
+                        self.level = lmc[2]
+                        self.player.reset_pos()
+                    self.client.lmc = []
             self.player.update()          
         self.camera.update()
 
     def draw(self):
         self.clear_screen()
         if settings.SHOW_MENU:
-            if self.client.running:
+            if self.play_type == "online" and self.client.running:
                 self.players = self.client.players
                 self.client.send_msg("[GET_DATA]")
             self.MENU.draw()
         else:
+            wo = []
             for go in self.game_objects:
+                if go.type != 19:
+                    go.update()
+                    go.draw()
+                else:
+                    wo.append(go)
+            self.player.draw()
+
+            for go in wo:
                 go.update()
                 go.draw()
-            self.player.draw()
             if self.play_type == "online":
                 self.client.send_msg("[GET_DATA]")
                 self.players = self.client.players
@@ -198,6 +220,7 @@ class Game:
         t17 = get_image(tile_sheet,64,64,BLACK, 4, 2)
         t18 = get_image(tile_sheet,64,64,BLACK, 5, 2)
         t19 = get_image(tile_sheet,64,64,BLACK, 6, 0)
+        t20 = get_image(tile_sheet,64,64,BLACK, 6, 1)
         images.append(t1)
         images.append(t2)
         images.append(t3)
@@ -217,8 +240,8 @@ class Game:
         images.append(t16)
         images.append(t17)
         images.append(t18)
-        images.append(t18)
         images.append(t19)
+        images.append(t20)
 
         self.game_objects = []
 
@@ -230,8 +253,10 @@ class Game:
                     if int(tile) >= 0:
                         if int(tile) < 9:
                             self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile)))
-                        elif int(tile) > 9:
+                        elif int(tile) >= 9:
                             self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], False, int(tile)))
+                        if int(tile) >= 9 < 18:
+                            self.in_game_keys.append([TILE_SPACING * x, TILE_SPACING * y, int(tile)])
     def text_objects(self, txt):
         txt_surf = default_font.render(txt, True, (0,0,0))
         return txt_surf, txt_surf.get_rect()
@@ -240,6 +265,10 @@ class Game:
         text_rect.center = (cx), (cy)
         self.SCREEN.blit(text_surf, text_rect)
     def clear_screen(self):
-        self.SCREEN.fill((255,255,255))
+        WHITE = (255,255,255)
+        if settings.SHOW_MENU:
+            self.SCREEN.fill(WHITE)
+        else:
+            self.SCREEN.fill((50,50,50))
     def check_buttons(self):
         pass
