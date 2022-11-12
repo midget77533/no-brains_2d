@@ -9,7 +9,7 @@ def get_image(sheet, width, height,color, col, row):
     return img
 
 class GameObject:
-    def __init__(self, game, pos, images, collidable, t):
+    def __init__(self, game, pos, images, collidable, t, a):
         self.GAME = game
         self.images = images
         self.animation_frame = 0
@@ -20,20 +20,24 @@ class GameObject:
         self.collidable = collidable
         self.rect = self.images[0].get_rect()
         self.type = t
-        self.active = True
-
-
+        self.active = a
+        self.stage = 0
+        if self.type == 20:
+            print(self.images)
     def draw(self):
-        if self.active:
+        if self.active and self.type != 20:
             i = self.images[0]
             i.set_alpha(255)
             self.images.append(i)
             self.GAME.SCREEN.blit(i, self.draw_pos)
-        else:
+        elif self.type != 20:
             i = self.images[0]
             i.set_alpha(100)
             self.images.append(i)
             self.GAME.SCREEN.blit(i, self.draw_pos)
+        if self.type == 20:
+  
+            self.GAME.SCREEN.blit(self.images[self.stage], self.draw_pos)
     def update(self):
         # self.pos[0] += self.velocity[0] * self.GAME.delta_time
         # self.pos[1] += self.velocity[1] * self.GAME.delta_time 

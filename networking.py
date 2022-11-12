@@ -11,7 +11,7 @@ class Server:
         self.p_num = 0
         self.GAME = game
         self.pfn = 0
-        self.current_level = 1
+        self.current_level = 0
     def start(self):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.bind((self.host, self.port))
@@ -24,7 +24,6 @@ class Server:
             CT.start()
             conn.send(pickle.dumps(addr))
             self.connections.append(conn)
-
     def handle_clients(self, c, a):
         while self.GAME.running:   
             try:
@@ -44,7 +43,7 @@ class Server:
                             break
                     if not aj:
                         self.players.append([a, -300, 0, 0, 0, data_v[1]])
-                        d = ["[URNUM]", a]
+                        d = ["[URNUM]", a, len(self.players)]
                         c.send(pickle.dumps(d))
                     for conn in self.connections:
                         conn.send(pickle.dumps(["[MSG]",f"[SERVER]: {data_v[1]} joined"]))
@@ -57,11 +56,14 @@ class Server:
                         self.pfn = 0
                     if data_v[1] == "[3]":
                         self.pfn += 1
-                        #if self.pfn == len(self.connections):
-                        self.current_level += 1
-                        self.pfn = 0
+                        print('PLAYER FINISHED')
+                        if self.pfn >= len(self.players):
+                            self.current_level += 1
                         data_v[2] = self.current_level
-                    if (data_v[1] == "[3]") or data_v[1] != "[3]":
+                    if (data_v[1] == "[3]" and self.pfn >= len(self.players)) or data_v[1] != "[3]":
+                        if data_v[1] == "[3]":
+                            self.pfn = 0
+                            print("FINISHED")
                         for conn in self.connections:
                             conn.send(pickle.dumps(data_v))
                 elif data_v == "[GET_DATA]":
@@ -77,7 +79,6 @@ class Server:
                             p[2] = data_v[2]
                             p[3] = data_v[3]
                             p[4] = data_v[4]
-                            
                             break
                     
                 if not data:
@@ -107,9 +108,9 @@ class Client:
         self.running = False
         self.rsm = False
         self.lmc = []
+        self.num = 0
     def run(self):
         self.running = True
-        print('running')
         self.c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.c.connect((self.host,self.port))
         t = threading.Thread(target=self.receive_msg)
@@ -125,6 +126,7 @@ class Client:
                 self.rsm = True
             if msg[0] == "[URNUM]":
                 self.id = msg[1]
+                self.num = msg[2]
             if msg[0] == "[DATA]":
                 self.players = msg[1]
             if msg[0] == "[MSG]":
@@ -139,6 +141,7 @@ class Client:
                     pass
             if msg[0] == "[MAP_CHANGE]":
                 self.lmc = msg
+                print('MAP_CHANGE')
 def start_server(host, port, g):
     server = Server(host, port, g)
     server.start()    

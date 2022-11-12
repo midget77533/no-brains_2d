@@ -15,7 +15,7 @@ caption_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 15)
 class MainMenu:
     def __init__(self, game):
         self.GAME = game
-        self.title = {"text": "ROUNDED EDGE WORLD", "x": 0, "y": 0, "color":(0,0,0),"font": default_font}
+        self.title = {"text": settings.TITLE, "x": 0, "y": 0, "color":(0,0,0),"font": default_font}
         self.buttons = [
             Button(self.GAME, 0, 250, pg.image.load("assets/textures/start_btn.png"), "[START]", 1,1), 
             Button(self.GAME, 0, 450, pg.image.load("assets/textures/options_btn.png"), "[SETTINGS]", 1,1),

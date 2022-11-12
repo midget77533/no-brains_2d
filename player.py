@@ -1,6 +1,6 @@
 import pygame as pg
 from settings import *
-import os, math
+import os, math, time
 from networking import *
 from buttons import *
 
@@ -40,6 +40,9 @@ class Player:
         self.tb2 = Button(self.GAME, 20, 170, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)
         self.tb3 = Button(self.GAME, 20, 240, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)
         self.pos_locked = False
+        self.spawn_point = [64 * 4, 16 * 64]
+        self.alive = True
+        self.pop_sound = self.GAME.mixer.Sound('assets/audio/pop.wav')
         images = []
         BLACK = (0,0,0)
         tile_sheet = pg.image.load('assets/textures/brick_tile_sheet.png')
@@ -72,17 +75,20 @@ class Player:
             self.tb2.draw()
         if self.tb3.name != "[T|-1]":
             self.tb3.draw()
-        if self.direction == 1:
+        if self.direction == 1 and self.alive:
             self.GAME.SCREEN.blit(self.right_sprites[int(self.anim_frame)], (self.draw_pos[0], self.draw_pos[1]))
-        if self.direction == 0:
+        if self.direction == 0 and self.alive:
             self.GAME.SCREEN.blit(self.left_sprites[int(self.anim_frame)], (self.draw_pos[0], self.draw_pos[1]))
+        if not self.alive:
+            if type(self.anim_frame / 2) == int:
+                self.GAME.SCREEN.blit(self.left_sprites[int(self.anim_frame)], (self.draw_pos[0], self.draw_pos[1]))
     def update(self):
         keys_pressed = pg.key.get_pressed()
         mx, my = pg.mouse.get_pos()
         if not self.pos_locked:
             self.pos[0] += self.velocity[0] * self.GAME.delta_time
             self.pos[1] += self.velocity[1] * self.GAME.delta_time
-        if self.velocity[0] != 0 or self.velocity[1] != 0:
+        if abs(self.velocity[0]) > 2 or abs(self.velocity[1]) > 2:
             if self.GAME.play_type == "online":
                 self.GAME.client.send_msg([self.GAME.client.id, self.pos[0], self.pos[1], self.direction, self.anim_frame])
         if keys_pressed[pg.K_p]:
@@ -127,10 +133,13 @@ class Player:
     def check_collision(self, pos):
         for go in self.GAME.game_objects:
             if go.collidable and go.active:
-                if (pos[0] + self.coll_rect[2] - 5 > go.pos[0] and pos[0] + 5 < go.pos[0] + go.rect[2]) and (pos[1] + self.coll_rect[3] > go.pos[1] and pos[1] < go.pos[1]) and go.type != 18:
-                    self.velocity[1] = 0
+                if (pos[0] + self.coll_rect[2] - 5 > go.pos[0] and pos[0] + 5 < go.pos[0] + go.rect[2]) and (pos[1] + self.coll_rect[3] + 1> go.pos[1] and pos[1] < go.pos[1]) and go.type != 18:
                     self.grounded = True
                     self.pos[1] = go.pos[1] - self.coll_rect[3]
+                    if self.velocity[1] > 1:
+                        if self.GAME.play_type == "online":
+                            self.GAME.client.send_msg([self.GAME.client.id, self.pos[0], self.pos[1], self.direction, self.anim_frame])
+                    self.velocity[1] = 0
                     break
                 else:
                     self.grounded = False
@@ -150,6 +159,16 @@ class Player:
             #launch pad
             if (pos[0] + self.coll_rect[2] - 5 > go.pos[0] and pos[0] + 5 < go.pos[0] + go.rect[2] and pos[1] + self.coll_rect[3] > go.pos[1] and pos[1] < go.pos[1] + go.rect[3]) and go.type == 18:
                 self.velocity[1] = -40
+            #check_point
+            if (pos[0] + self.coll_rect[2] - 5 > go.pos[0] and pos[0] + 5 < go.pos[0] + go.rect[2] and pos[1] + self.coll_rect[3] > go.pos[1] and pos[1] < go.pos[1] + go.rect[3]) and go.type == 20 and go.stage == 0:
+                self.GAME.check_point = go.pos
+                # if self.GAME.play_type == "online":
+                #     self.GAME.client.send_msg(["[MAP_CHANGE]", "[3]", go.pos])
+                go.stage = 1
+            #die
+            if (pos[0] + self.coll_rect[2] - 10 > go.pos[0] and pos[0] + 10 < go.pos[0] + go.rect[2] and pos[1] + self.coll_rect[3] > go.pos[1] and pos[1] < go.pos[1] + go.rect[3]) and go.type == 21:
+                self.pop_sound.play()
+                self.death_animation()
             #keys
             if (pos[0] + self.coll_rect[2] > go.pos[0] and pos[0] < go.pos[0] + go.rect[2] and pos[1] + self.coll_rect[3] > go.pos[1] and pos[1] < go.pos[1] + go.rect[3]) and go.type < 18 and go.type > 8:
                 if self.tb1.name == "[T|-1]":
@@ -179,9 +198,12 @@ class Player:
             if (pos[0] + self.coll_rect[2] - 5 > go.pos[0] and pos[0] + 5 < go.pos[0] + go.rect[2] and pos[1] + self.coll_rect[3] > go.pos[1] and pos[1] < go.pos[1] + go.rect[3]) and not self.completed_level and go.type == 19:
                 self.completed_level = True
                 self.pos_locked = True
-                self.pos[1] = 64 * 20
+                self.pos[1] = 64 * 24
                 if self.GAME.play_type == "online":
                     self.GAME.client.send_msg(["[MAP_CHANGE]", "[3]", 0])
+                else:
+                    self.GAME.level += 1
+                    self.reset_pos()
                 break
             else:
                 self.completed_level = False
@@ -194,31 +216,39 @@ class Player:
                     self.grounded = True
                     self.pos[1] = y - self.coll_rect[3]
                     break
-            # for p in self.GAME.client.players:
-            #     if (pos[0] + self.coll_rect[2] + self.velocity[0] > x and pos[0] < x) and (y + self.coll_rect[3] - 1> y and pos[1] < y + 64):
-            #         self.pos[0] = go.pos[0] - self.coll_rect[3] - 1
-            #         self.velocity[0] = 0
-            #     if (pos[0] > x and pos[0] + self.velocity[0] < x + 64) and (pos[1] + self.coll_rect[3] - 1> y and pos[1] < y + 64) and p[0] != self.GAME.client.id:
-            #         self.pos[0] = go.pos[0] + go.rect[3] + 1
-            #         self.velocity[0] = 0 
+    def death_animation(self):
+        self.alive = False
+        self.respawn_animation()
+    def respawn_animation(self):
+        self.reset_pos()
+        if self.GAME.play_type == "online":
+            self.GAME.client.send_msg(["[MAP_CHANGE]", "[1]", 0])
+        # for i in range(8):
+        #     self.anim_frame += 1
+        #     self.draw()
+        #     time.sleep(.1)
+        #     pg.display.update()
+        self.anim_frame = 0
+        self.alive = True
     def reset_pos(self):
-        self.pos = [64 * 3, 16 * 64]
+        self.pos = self.GAME.check_point
         self.velocity = [0,0]
+        self.GAME.camera.pos = self.pos
         self.tb1 = Button(self.GAME, 20, 100, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)
         self.tb2 = Button(self.GAME, 20, 170, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)
         self.tb3 = Button(self.GAME, 20, 240, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)
         self.GAME.load_level_data()
         self.completed_level = False
         self.pos_locked = False
-        
+        self.grounded = False       
     def move(self):
         if not self.grounded and self.velocity[1] <= self.terminal_velocity:
             self.velocity[1] += self.gravity_scale * self.GAME.delta_time
         keys_pressed = pg.key.get_pressed()
         if keys_pressed[pg.K_r] and not self.GAME.typing:
-            self.reset_pos()
-            if self.GAME.play_type == "online":
-                self.GAME.client.send_msg(["[MAP_CHANGE]", "[1]", f"[]"])
+            self.respawn_animation()
+            # if self.GAME.play_type == "online":
+            #     self.GAME.client.send_msg(["[MAP_CHANGE]", "[1]", f"[]"])
         if keys_pressed[pg.K_SPACE] and self.grounded and not self.GAME.typing:
             self.pos[1] -= 5
             self.velocity[1] = -self.jump_power 

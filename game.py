@@ -28,7 +28,7 @@ class Game:
         pg.display.set_caption(TITLE)
     def new_game(self):
         self.name = "player" #input("username: ")
-
+        self.mixer = pg.mixer
         self.running = True
         self.SCREEN = pg.display.set_mode(RES) 
         self.MENU = MainMenu(self)
@@ -46,11 +46,15 @@ class Game:
         self.mouse_still_down = False
         self.play_type = "undecided"
         self.enough_players = False
-        self.level = 1
+        self.level = 0
         self.in_game_keys = []
+        self.player_num = 0
+        self.check_point = [64 * 4, 16 * 64]
+        self.music = self.mixer.music.load('assets/audio/test_song.wav')
         settings.CAMERA_TARGET = self.player
     def run(self):
         #self.MENU = MainMenu(self)
+        #self.mixer.music.play(0)
         self.load_level_data()
         self.SCREEN = pg.display.set_mode(RES)
         if FULL_SCREEN:
@@ -63,8 +67,8 @@ class Game:
                     self.client.running = False
                     pg.quit()
                     print("[QUIT GAME]")
-                    
-                    self.client.send_msg([self.client.id, "[QUIT]", self.name])
+                    if self.play_type == "online":
+                        self.client.send_msg([self.client.id, "[QUIT]", self.name])
                     sys.exit()
                 if event.type == pg.KEYDOWN:
                     if self.typing:
@@ -77,7 +81,7 @@ class Game:
                             self.chat_text = self.chat_text[:-1]
                         else:
                             self.chat_text += event.unicode
-                if event.type == pg.KEYDOWN and event.key == pg.K_t and not settings.SHOW_MENU:
+                if event.type == pg.KEYDOWN and event.key == pg.K_t and not settings.SHOW_MENU and self.play_type == "online":
                     self.typing = True
                 if event.type == pg.KEYDOWN:
                     if self.MENU.selected_box >= 0:
@@ -94,15 +98,15 @@ class Game:
         self.prev_time = now
 
     def update(self):
-        if self.play_type == "online" and  len(self.client.players) > 0:
+        if self.play_type == "online" and  len(self.client.players) > 1:
             self.enough_players = True
+            self.player_num = self.client.num
         if settings.SHOW_MENU:
             if self.play_type == "online" and self.client.rsm:
                 settings.SHOW_MENU = False
             self.MENU.update()
         else:
             if self.play_type == "online":
-                
                 lmc = self.client.lmc
                 change_in_keys = False
                 if lmc != []:
@@ -122,8 +126,8 @@ class Game:
                                 self.game_objects.remove(go)
                                 print('obj_destroyed')
                     if lmc[1] == "[3]":
-                        self.level = lmc[2]
-                        self.player.reset_pos()
+                        pass#self.check_point = lmc[2]
+
                     self.client.lmc = []
             self.player.update()          
         self.camera.update()
@@ -221,6 +225,9 @@ class Game:
         t18 = get_image(tile_sheet,64,64,BLACK, 5, 2)
         t19 = get_image(tile_sheet,64,64,BLACK, 6, 0)
         t20 = get_image(tile_sheet,64,64,BLACK, 6, 1)
+        t21 = get_image(tile_sheet,64,64,BLACK, 6, 2)
+        t22 = get_image(tile_sheet,64,64,BLACK, 7, 0)
+
         images.append(t1)
         images.append(t2)
         images.append(t3)
@@ -242,21 +249,31 @@ class Game:
         images.append(t18)
         images.append(t19)
         images.append(t20)
+        images.append(t21)
+        images.append(t22)
 
         self.game_objects = []
 
         TILE_SPACING = 64
+
         with open(os.path.join('levels',f'level{self.level}_data.csv'), newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter = ',')
             for x, row in enumerate(reader):
                 for y, tile in enumerate(row):
                     if int(tile) >= 0:
                         if int(tile) < 9:
-                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile)))
-                        elif int(tile) >= 9:
-                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], False, int(tile)))
+                            if int(tile) < 6:
+                                self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), True))
+                            else:
+                                self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), False))
+                        elif int(tile) >= 9 and int(tile) < 20:
+                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], False, int(tile), True))
                         if int(tile) >= 9 < 18:
-                            self.in_game_keys.append([TILE_SPACING * x, TILE_SPACING * y, int(tile)])
+                            self.in_game_keys.append([TILE_SPACING * y, TILE_SPACING * x, int(tile)])
+                        if int(tile) == 20:
+                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)], get_image(tile_sheet,64,64,BLACK, 7, 2)], False, int(tile), True))
+                        if int(tile) == 21:
+                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x + 1], [images[int(tile)]], False, int(tile), True))
     def text_objects(self, txt):
         txt_surf = default_font.render(txt, True, (0,0,0))
         return txt_surf, txt_surf.get_rect()
@@ -269,6 +286,6 @@ class Game:
         if settings.SHOW_MENU:
             self.SCREEN.fill(WHITE)
         else:
-            self.SCREEN.fill((50,50,50))
+            self.SCREEN.fill((197, 239, 250))
     def check_buttons(self):
         pass
