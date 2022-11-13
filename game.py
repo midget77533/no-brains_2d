@@ -11,11 +11,11 @@ from game_object import *
 from networking import *
 import pickle, os, csv
 
-default_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 15)
-pop_up_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 45)
-msg_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 30)
+default_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(15* settings.SCALE))
+pop_up_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(45* settings.SCALE))
+msg_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(30* settings.SCALE))
 
-chat_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 20)
+chat_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(20* settings.SCALE))
 
 def get_image(sheet, width, height,color, col, row):
     img = pg.Surface((width, height))
@@ -55,9 +55,15 @@ class Game:
         settings.CAMERA_TARGET = self.player
         self.sn = 0
         self.tick_buffer = 0
+        self.fg = [pg.image.load('assets/level_editor/images/foreground.png').convert_alpha(), pg.image.load('assets/level_editor/images/foreground.png').convert_alpha()]
+        self.mg = [pg.image.load('assets/level_editor/images/midground.png').convert_alpha(), pg.image.load('assets/level_editor/images/midground.png').convert_alpha()]
+        self.bg = [pg.image.load('assets/level_editor/images/background.png').convert_alpha(), pg.image.load('assets/level_editor/images/background.png').convert_alpha()]
+        self.bgx = 0
+        self.mgx = 0
+        self.fgx = 0
     def run(self):
         #self.MENU = MainMenu(self)
-        #self.mixer.music.play(0)
+        self.mixer.music.play(0)
         self.load_level_data()
         self.SCREEN = pg.display.set_mode(RES)
         if FULL_SCREEN:
@@ -118,6 +124,7 @@ class Game:
             
         if settings.SHOW_MENU:
             if self.play_type == "online" and self.client.rsm:
+                self.camera.pos[0] = 0
                 settings.SHOW_MENU = False
             # if self.play_type == "online":
             #     self.client.send_msg("[GET_DATA]")
@@ -125,7 +132,6 @@ class Game:
         
         else:
             if self.play_type == "online":
-
                 if self.camera.spectating:
                     self.camera.tp = [self.players[self.sn][1], self.players[self.sn][2]]
                     self.camera.pos = [self.players[self.sn][1], self.players[self.sn][2]]
@@ -182,21 +188,21 @@ class Game:
                 p = self.player
                 for op in self.players:
                     if op[0] != self.client.id and op[1] != "[QUIT]":
-                        dx = -self.camera.pos[0] + op[1] + self.camera.offset[0]
-                        dy = -self.camera.pos[1] + op[2] + self.camera.offset[1]
+                        dx = (-self.camera.pos[0] + op[1] + self.camera.offset[0]) * settings.SCALE
+                        dy = (-self.camera.pos[1] + op[2] + self.camera.offset[1]) * settings.SCALE
                         if op[3] == 0:
                             self.SCREEN.blit(self.player.left_sprites[int(op[4])], (dx, dy))
                         else:
                             self.SCREEN.blit(self.player.right_sprites[int(op[4])], (dx, dy))
 
-                        self.text_to_screen(op[5], dx + 32, dy - 20, default_font, (0,0,0))
+                        self.text_to_screen(op[5], dx + 32 * settings.SCALE, dy - 20 * settings.SCALE, default_font, (0,0,0))
                         r1 = [p.pos[0], p.pos[1], p.coll_rect[2], p.coll_rect[3]]
                         r2 = [op[1], op[2], p.coll_rect[2], p.coll_rect[3]]
                         if r1[0] + r1[2] > r2[0] and r2[0] + r2[2] > r1[0] and r1[1] + r1[3] > r2[1] and r2[1] + r2[3] > r1[1]:
                             if r1[1] > r2[1]:
                                 self.player.draw()
                     
-                self.text_to_screen(self.name, self.player.draw_pos[0] + 32, self.player.draw_pos[1] - 20, default_font, (0,0,0))
+                self.text_to_screen(self.name, self.player.draw_pos[0]* settings.SCALE + 32 * settings.SCALE, self.player.draw_pos[1] * settings.SCALE - 20 * settings.SCALE, default_font, (0,0,0))
                 if self.typing:
                     s = pg.Surface((self.SCREEN.get_width(), 100))
                     s.fill((0,0,0))
@@ -231,29 +237,33 @@ class Game:
 
         images = []
         tile_sheet = pg.image.load('assets/textures/brick_tile_sheet.png')
-        t1 = get_image(tile_sheet,64,64,BLACK, 0, 0)
-        t2 = get_image(tile_sheet,64,64,BLACK, 1, 0)
-        t3 = get_image(tile_sheet,64,64,BLACK, 2, 0)
-        t4 = get_image(tile_sheet,64,64,BLACK, 0, 1)
-        t5 = get_image(tile_sheet,64,64,BLACK, 1, 1)
-        t6 = get_image(tile_sheet,64,64,BLACK, 2, 1)
-        t7 = get_image(tile_sheet,64,64,BLACK, 0, 2)
-        t8 = get_image(tile_sheet,64,64,BLACK, 1, 2)
-        t9 = get_image(tile_sheet,64,64,BLACK, 2, 2)
+        w = tile_sheet.get_width()* settings.SCALE
+        h = tile_sheet.get_height()* settings.SCALE
+        tile_sheet = pg.transform.scale(tile_sheet, (w, h))
+        TILE_SIZE = 64 * settings.SCALE
+        t1 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 0, 0)
+        t2 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 1, 0)
+        t3 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 2, 0)
+        t4 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 0, 1)
+        t5 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 1, 1)
+        t6 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 2, 1)
+        t7 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 0, 2)
+        t8 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 1, 2)
+        t9 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 2, 2)
 
-        t10 = get_image(tile_sheet,64,64,BLACK, 3, 0)
-        t11 = get_image(tile_sheet,64,64,BLACK, 4, 0)
-        t12 = get_image(tile_sheet,64,64,BLACK, 5, 0)
-        t13 = get_image(tile_sheet,64,64,BLACK, 3, 1)
-        t14 = get_image(tile_sheet,64,64,BLACK, 4, 1)
-        t15 = get_image(tile_sheet,64,64,BLACK, 5, 1)
-        t16 = get_image(tile_sheet,64,64,BLACK, 3, 2)
-        t17 = get_image(tile_sheet,64,64,BLACK, 4, 2)
-        t18 = get_image(tile_sheet,64,64,BLACK, 5, 2)
-        t19 = get_image(tile_sheet,64,64,BLACK, 6, 0)
-        t20 = get_image(tile_sheet,64,64,BLACK, 6, 1)
-        t21 = get_image(tile_sheet,64,64,BLACK, 6, 2)
-        t22 = get_image(tile_sheet,64,64,BLACK, 7, 0)
+        t10 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 3, 0)
+        t11 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 4, 0)
+        t12 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 5, 0)
+        t13 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 3, 1)
+        t14 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 4, 1)
+        t15 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 5, 1)
+        t16 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 3, 2)
+        t17 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 4, 2)
+        t18 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 5, 2)
+        t19 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 6, 0)
+        t20 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 6, 1)
+        t21 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 6, 2)
+        t22 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 7, 0)
 
         images.append(t1)
         images.append(t2)
@@ -313,8 +323,39 @@ class Game:
     def clear_screen(self):
         WHITE = (255,255,255)
         if settings.SHOW_MENU:
-            self.SCREEN.fill(WHITE)
-        else:
+            self.camera.pos[0] += 2
+        if True:
+
+            self.bgx = -self.camera.pos[0] * 0.1
+            self.mgx = -self.camera.pos[0] * 0.2
+            self.fgx = -self.camera.pos[0] * 0.4
             self.SCREEN.fill((197, 239, 250))
+            for i in range(len(self.bg)):
+                bgi = self.bg[i]
+                w = bgi.get_width()
+                x = self.bgx + w * i
+                y = self.SCREEN.get_height() - bgi.get_height()
+                if x + w > 0:
+                    self.SCREEN.blit(bgi, (x, y))
+            for i in range(len(self.mg)):
+                w = bgi.get_width()
+                bgi = self.mg[i]
+                x = self.mgx + w * i 
+                y = self.SCREEN.get_height() - bgi.get_height()
+                if x + w > 0:
+                    self.SCREEN.blit(bgi, (x, y))
+            for i in range(len(self.fg)):
+                w = bgi.get_width()
+                bgi = self.fg[i]
+                x = self.fgx + w * i
+                y = self.SCREEN.get_height() - bgi.get_height()
+                if x + w > 0:
+                    self.SCREEN.blit(bgi, (x, y))
+            if self.bgx + self.bg[0].get_width() * len(self.bg) < self.SCREEN.get_width():
+                self.bg.append(self.bg[0])
+            if self.mgx + self.mg[0].get_width() * len(self.mg) < self.SCREEN.get_width():
+                self.mg.append(self.mg[0])
+            if self.fgx + self.fg[0].get_width() * len(self.fg) < self.SCREEN.get_width():
+                self.fg.append(self.fg[0])
     def check_buttons(self):
         pass

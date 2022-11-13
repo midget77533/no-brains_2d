@@ -8,31 +8,31 @@ from buttons import *
 from networking import *
 pg.init()
 
-default_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 100)
-lable_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 50)
-txt_field_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 25)
-caption_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 15)
+default_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(100 * settings.SCALE))
+lable_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(50 * settings.SCALE))
+txt_field_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(25 * settings.SCALE))
+caption_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(15 * settings.SCALE))
 class MainMenu:
     def __init__(self, game):
         self.GAME = game
         self.title = {"text": settings.TITLE, "x": 0, "y": 0, "color":(0,0,0),"font": default_font}
         self.buttons = [
-            Button(self.GAME, 0, 250, pg.image.load("assets/textures/start_btn.png"), "[START]", 1,1), 
-            Button(self.GAME, 0, 450, pg.image.load("assets/textures/options_btn.png"), "[SETTINGS]", 1,1),
-            Button(self.GAME, 0, 650, pg.image.load("assets/textures/quit_btn.png"), "[QUIT]",1, 1)
+            Button(self.GAME, 0, 250 * settings.SCALE, pg.image.load("assets/textures/start_btn.png"), "[START]", 1 * settings.SCALE,1 * settings.SCALE), 
+            Button(self.GAME, 0, 450 * settings.SCALE, pg.image.load("assets/textures/options_btn.png"), "[SETTINGS]", 1* settings.SCALE,1* settings.SCALE),
+            Button(self.GAME, 0, 650 * settings.SCALE, pg.image.load("assets/textures/quit_btn.png"), "[QUIT]",1* settings.SCALE, 1* settings.SCALE)
         ]
         self.lobby_btns = [
-            Button(self.GAME, 750, 610, pg.image.load("assets/textures/create_room_btn.png"), "[CREATE]", 1, 1), 
-            Button(self.GAME, 1050, 610, pg.image.load("assets/textures/join_room_btn.png"), "[JOIN]", 1, 1),
+            Button(self.GAME, 750 * settings.SCALE, 610 * settings.SCALE, pg.image.load("assets/textures/create_room_btn.png"), "[CREATE]", 1* settings.SCALE, 1* settings.SCALE), 
+            Button(self.GAME, 1050 * settings.SCALE, 610 * settings.SCALE, pg.image.load("assets/textures/join_room_btn.png"), "[JOIN]", 1* settings.SCALE, 1* settings.SCALE),
         ]
-        self.back_btn = Button(self.GAME, 15, 10, pg.image.load("assets/textures/back_btn.png"), "[BACK]", 1, 1)
+        self.back_btn = Button(self.GAME, 15 * settings.SCALE, 10 * settings.SCALE, pg.image.load("assets/textures/back_btn.png"), "[BACK]", 1* settings.SCALE, 1* settings.SCALE)
         for btn in self.buttons:
             btn = self.center_button_x(btn, self.GAME.SCREEN.get_width() / 2)
-        self.spb = Button(self.GAME, 370, 300, pg.image.load("assets/textures/single_player_btn.png"), "[SINGLE_PLAYER]", 1, 1)
-        self.mpb = Button(self.GAME, 870, 300, pg.image.load("assets/textures/multi_player_btn.png"), "[MULTI_PLAYER]", 1, 1)
-        self.play_btn = Button(self.GAME, 1050, 610, pg.image.load("assets/textures/play_btn.png"), "[PLAY]", 1, 1)
+        self.spb = Button(self.GAME, 370 * settings.SCALE , 300 * settings.SCALE, pg.image.load("assets/textures/single_player_btn.png"), "[SINGLE_PLAYER]", 1* settings.SCALE, 1* settings.SCALE)
+        self.mpb = Button(self.GAME, 870 * settings.SCALE, 300 * settings.SCALE, pg.image.load("assets/textures/multi_player_btn.png"), "[MULTI_PLAYER]", 1* settings.SCALE, 1* settings.SCALE)
+        self.play_btn = Button(self.GAME, 1050 * settings.SCALE, 610 * settings.SCALE, pg.image.load("assets/textures/play_btn.png"), "[PLAY]", 1* settings.SCALE, 1* settings.SCALE)
         self.page = "main_menu"
-        self.text_fields = [pg.Rect(330, 300, 410, 60), pg.Rect(330, 550, 410, 60)]
+        self.text_fields = [pg.Rect(330 * settings.SCALE, 300 * settings.SCALE, 410 * settings.SCALE, 60 * settings.SCALE), pg.Rect(330 * settings.SCALE, 550 * settings.SCALE, 410 * settings.SCALE, 60 * settings.SCALE)]
         self.text_in_fields = ['', socket.gethostbyname(socket.gethostname())]
         self.selected_box = -1
         self.bbtn_destination = "main_menu"
@@ -70,6 +70,7 @@ class MainMenu:
                 settings.SHOW_MENU = False
                 self.bbtn_destination = self.page
                 self.GAME.play_type = "offline"
+                self.GAME.camera.pos[0] = 0
         if self.page == "lobby_menu":
             #if len(self.players) > 0:
             self.GAME.enough_players
@@ -77,6 +78,7 @@ class MainMenu:
                 if self.play_btn.check_click():
                     self.GAME.client.send_msg("[PLAY]")
                     settings.SHOW_MENU = False
+                    self.GAME.camera.pos[0] = 0
         if self.page == "server_menu":
             self.bbtn_destination = "choice_menu"
             for btn in self.lobby_btns:
@@ -102,28 +104,28 @@ class MainMenu:
         if self.page == "server_menu":
             a = self.GAME.SCREEN.get_width() 
             b = self.GAME.SCREEN.get_height()
-            pg.draw.rect(self.GAME.SCREEN, (90,90,90), [a / 2 - (a / 1.5) / 2, b / 2 - (b / 1.5) / 2, a / 1.5, b / 1.5])
-            self.render_text("NAME:", 320, 200, False, lable_font)
-            self.render_text("SERVER:", 320, 450, False, lable_font)
-            self.render_text("*maximum 15 characters", 350, 270, False, caption_font)
-            self.render_text("*only required if joining server", 350, 520, False, caption_font)
+            pg.draw.rect(self.GAME.SCREEN, (90,90,90), [(a / 2 - (a / 1.5) / 2) , (b / 2 - (b / 1.5) / 2) , (a / 1.5) , (b / 1.5) ])
+            self.render_text("NAME:", 320 * settings.SCALE, 200 * settings.SCALE, False, lable_font)
+            self.render_text("SERVER:", 320 * settings.SCALE, 450 * settings.SCALE, False, lable_font)
+            self.render_text("*maximum 15 characters", 350 * settings.SCALE, 270 * settings.SCALE, False, caption_font)
+            self.render_text("*only required if joining server", 350 * settings.SCALE, 520 * settings.SCALE, False, caption_font)
             pg.draw.rect(self.GAME.SCREEN, (50,50,50), self.text_fields[0])
             pg.draw.rect(self.GAME.SCREEN, (50,50,50), self.text_fields[1])
             s1 = txt_field_font.render(self.text_in_fields[0], True, (0,0,0))
             s2 = txt_field_font.render(self.text_in_fields[1], True, (0,0,0))
-            self.GAME.SCREEN.blit(s1, (self.text_fields[0].x + 10, self.text_fields[0].y + 15))
-            self.GAME.SCREEN.blit(s2, (self.text_fields[1].x + 10, self.text_fields[1].y + 15))
+            self.GAME.SCREEN.blit(s1, (self.text_fields[0].x + 10 * settings.SCALE, self.text_fields[0].y + 15 * settings.SCALE))
+            self.GAME.SCREEN.blit(s2, (self.text_fields[1].x + 10 * settings.SCALE, self.text_fields[1].y + 15 * settings.SCALE))
             for btn in self.lobby_btns:
                 btn.draw()
         if self.page == "lobby_menu":
             a = self.GAME.SCREEN.get_width() 
             b = self.GAME.SCREEN.get_height()
-            pg.draw.rect(self.GAME.SCREEN, (90,90,90), [a / 2 - (a / 1.5) / 2, b / 2 - (b / 1.5) / 2, a / 1.5, b / 1.5])
-            self.render_text("PLAYERS", 320, 200, False, lable_font)
+            pg.draw.rect(self.GAME.SCREEN, (90,90,90), [(a / 2 - (a / 1.5) / 2) , (b / 2 - (b / 1.5) / 2) , (a / 1.5) , (b / 1.5)])
+            self.render_text("PLAYERS", 320 * settings.SCALE, 200 * settings.SCALE, False, lable_font)
             for i in range(len(self.players)):
                 pn = self.players[i][5]
-                pg.draw.rect(self.GAME.SCREEN, (30,30,30), [340, 290 + i * 120, 500, 70])
-                self.render_text(pn, 350, 310 + i * 120, False, txt_field_font)
+                pg.draw.rect(self.GAME.SCREEN, (30,30,30), [340 * settings.SCALE, (290 + i * 120) * settings.SCALE, 500 * settings.SCALE, 70 * settings.SCALE])
+                self.render_text(pn, 350 * settings.SCALE, (310 + i * 120) * settings.SCALE, False, txt_field_font)
             if self.GAME.enough_players:
                 self.play_btn.draw()
         if self.page == "choice_menu":
@@ -134,7 +136,7 @@ class MainMenu:
         return txt_surf, txt_surf.get_rect()
     def text_to_screen(self):
         text_surf, text_rect = self.text_objects()
-        text_rect.center = (self.GAME.SCREEN.get_width() / 2), (100)
+        text_rect.center = (self.GAME.SCREEN.get_width() / 2), (100 * settings.SCALE)
         self.GAME.SCREEN.blit(text_surf, text_rect)
     def get_txt_obj(self, text, fnt):
         txt_surf = fnt.render(text, True, (255,255,255))

@@ -33,9 +33,9 @@ scroll_speed = 1
 
 
 #load images
-pine1_img = pygame.image.load('assets/level_editor/images/pine1.png').convert_alpha()
-pine2_img = pygame.image.load('assets/level_editor/images/pine2.png').convert_alpha()
-mountain_img = pygame.image.load('assets/level_editor/images/mountain.png').convert_alpha()
+pine1_img = pygame.image.load('assets/level_editor/images/foreground.png').convert_alpha()
+pine2_img = pygame.image.load('assets/level_editor/images/midground.png').convert_alpha()
+mountain_img = pygame.image.load('assets/level_editor/images/background.png').convert_alpha()
 mountain_img.set_colorkey((0,0,0))
 sky_img = pygame.image.load('assets/level_editor/images/sky_cloud.png').convert_alpha()
 
@@ -128,12 +128,13 @@ def draw_text(text, font, text_col, x, y):
 
 
 def draw_bg():
-	screen.fill(GREEN)
+	screen.fill((197, 239, 250))
 	width = sky_img.get_width()
 	for x in range(4):
-		screen.blit(sky_img, ((x * width) - scroll * 0.5, 0))
-		screen.blit(mountain_img, ((x * width) - scroll * 0.6, SCREEN_HEIGHT - mountain_img.get_height() - 300))
-		screen.blit(pine1_img, ((x * width) - scroll * 0.7, SCREEN_HEIGHT - pine1_img.get_height() - 150))
+		
+		#screen.blit(sky_img, ((x * width) - scroll * 0.5, 0))
+		screen.blit(mountain_img, ((x * width) - scroll * 0.6, SCREEN_HEIGHT - mountain_img.get_height()))
+		screen.blit(pine1_img, ((x * width) - scroll * 0.7, SCREEN_HEIGHT - pine1_img.get_height()))
 		screen.blit(pine2_img, ((x * width) - scroll * 0.8, SCREEN_HEIGHT - pine2_img.get_height()))
 
 def draw_grid():

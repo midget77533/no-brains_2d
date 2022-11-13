@@ -3,7 +3,7 @@ from settings import *
 import os, math, time
 from networking import *
 from buttons import *
-
+import settings
 def get_image(sheet, width, height,color, col, row):
     img = pg.Surface((width, height))
     img.blit(sheet, (0,0), ((col * width),(row * height),width,height))
@@ -23,14 +23,15 @@ class Player:
         pg.image.load(os.path.join('assets/sprites/player/left/1.png')), 
         ]
         for s in range(len(self.right_sprites)):
-            i = pg.transform.scale(self.right_sprites[s], (64, 64))
+            i = pg.transform.scale(self.right_sprites[s], (64 * settings.SCALE, 64 * settings.SCALE))
             self.right_sprites[s] = i
-            i = pg.transform.scale(self.left_sprites[s], (64, 64))
+            i = pg.transform.scale(self.left_sprites[s], (64 * settings.SCALE, 64 * settings.SCALE))
             self.left_sprites[s] = i
         self.draw_pos = [0,0]
         self.anim_frame = 0
         self.direction = 1
         self.coll_rect = self.right_sprites[0].get_rect()
+        self.coll_rect = [self.coll_rect[0], self.coll_rect[1], 64, 64]
         self.gravity_scale = 1
         self.terminal_velocity = 35
         self.jump_power = 16
@@ -67,8 +68,8 @@ class Player:
         images.append(t9)
         self.button_target_sprites = images
     def draw(self):
-        self.draw_pos[0] = -self.GAME.camera.pos[0] + self.pos[0] + self.GAME.camera.offset[0]
-        self.draw_pos[1] = -self.GAME.camera.pos[1] + self.pos[1] + self.GAME.camera.offset[1]
+        self.draw_pos[0] = (-self.GAME.camera.pos[0] + self.pos[0] + self.GAME.camera.offset[0])
+        self.draw_pos[1] = (-self.GAME.camera.pos[1] + self.pos[1] + self.GAME.camera.offset[1])
         if self.tb1.name != "[T|-1]":
             self.tb1.draw()
         if self.tb2.name != "[T|-1]":
@@ -76,12 +77,12 @@ class Player:
         if self.tb3.name != "[T|-1]":
             self.tb3.draw()
         if self.direction == 1 and self.alive:
-            self.GAME.SCREEN.blit(self.right_sprites[int(self.anim_frame)], (self.draw_pos[0], self.draw_pos[1]))
+            self.GAME.SCREEN.blit(self.right_sprites[int(self.anim_frame)], (self.draw_pos[0] * settings.SCALE, self.draw_pos[1] * settings.SCALE))
         if self.direction == 0 and self.alive:
-            self.GAME.SCREEN.blit(self.left_sprites[int(self.anim_frame)], (self.draw_pos[0], self.draw_pos[1]))
+            self.GAME.SCREEN.blit(self.left_sprites[int(self.anim_frame)], (self.draw_pos[0] * settings.SCALE, self.draw_pos[1] * settings.SCALE))
         if not self.alive:
             if type(self.anim_frame / 2) == int:
-                self.GAME.SCREEN.blit(self.left_sprites[int(self.anim_frame)], (self.draw_pos[0], self.draw_pos[1]))
+                self.GAME.SCREEN.blit(self.left_sprites[int(self.anim_frame)], (self.draw_pos[0] * settings.SCALE, self.draw_pos[1] * settings.SCALE))
     def update(self):
         keys_pressed = pg.key.get_pressed()
         mx, my = pg.mouse.get_pos()
@@ -231,7 +232,13 @@ class Player:
         self.GAME.camera.spectating = False
         self.pos = self.GAME.check_point
         self.velocity = [0,-5]
-        #self.GAME.camera.pos = self.pos
+        self.GAME.fgx = 0
+        self.GAME.mgx = 0
+        self.GAME.bgx = 0
+        self.GAME.fg = [pg.image.load('assets/level_editor/images/foreground.png').convert_alpha(), pg.image.load('assets/level_editor/images/foreground.png').convert_alpha()]
+        self.GAME.mg = [pg.image.load('assets/level_editor/images/midground.png').convert_alpha(), pg.image.load('assets/level_editor/images/midground.png').convert_alpha()]
+        self.GAME.bg = [pg.image.load('assets/level_editor/images/background.png').convert_alpha(), pg.image.load('assets/level_editor/images/background.png').convert_alpha()]
+        self.GAME.camera.pos[0] = self.pos[0]
         self.tb1 = Button(self.GAME, 20, 100, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)
         self.tb2 = Button(self.GAME, 20, 170, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)
         self.tb3 = Button(self.GAME, 20, 240, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)

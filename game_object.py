@@ -1,7 +1,7 @@
 import pygame as pg
 from camera import Camera
 from settings import *
-
+import settings
 def get_image(sheet, width, height,color, col, row):
     img = pg.Surface((width, height))
     img.blit(sheet, (0,0), ((col * width),(row * height),width,height))
@@ -19,6 +19,7 @@ class GameObject:
         self.draw_pos = [0,0]
         self.collidable = collidable
         self.rect = self.images[0].get_rect()
+        self.rect = [self.rect[0], self.rect[1], 64, 64]
         self.type = t
         self.active = a
         self.stage = 0
@@ -28,26 +29,22 @@ class GameObject:
         self.g = 0
         self.b = 0
         self.shift_speed = 5
+        self.draw_pos = [self.draw_pos[0] * settings.SCALE, self.draw_pos[1] * settings.SCALE]
     def draw(self):
         if self.active and (self.type != 20 and self.type != 19):
             i = self.images[0]
             i.set_alpha(255)
             self.images.append(i)
-            self.GAME.SCREEN.blit(i, self.draw_pos)
+            self.GAME.SCREEN.blit(i, (self.draw_pos[0] * settings.SCALE, self.draw_pos[1] * settings.SCALE))
         elif (self.type != 20 and self.type != 19):
             i = self.images[0]
             i.set_alpha(100)
             self.images.append(i)
-            self.GAME.SCREEN.blit(i, self.draw_pos)
+            self.GAME.SCREEN.blit(i, (self.draw_pos[0] * settings.SCALE, self.draw_pos[1] * settings.SCALE))
         if self.type == 20:
-            self.GAME.SCREEN.blit(self.images[self.stage], self.draw_pos)
+            self.GAME.SCREEN.blit(self.images[self.stage], (self.draw_pos[0] * settings.SCALE, self.draw_pos[1] * settings.SCALE))
+        #pg.draw.rect(self.GAME.SCREEN, (255,255,0), [self.pos[0]* settings.SCALE, self.draw_pos[1]* settings.SCALE, 64 * settings.SCALE, 64 * settings.SCALE])
         if self.type == 19:
-            # self.animation_frame += .1
-            # if self.animation_frame > len(self.images):
-            #     self.animation_frame = 0
-            # i = self.images[int(self.animation_frame)]
-            # i.set_alpha(255)
-            # self.GAME.SCREEN.blit(i, self.draw_pos)
             if self.mc == 0:
                 self.g += self.shift_speed
             if self.mc == 1:
@@ -86,7 +83,7 @@ class GameObject:
                 self.b = 255
             self.color = (self.r, self.g, self.b)
             #print(self.color)
-            pg.draw.rect(self.GAME.SCREEN, self.color, [self.draw_pos[0], self.draw_pos[1], 64, 64])
+            pg.draw.rect(self.GAME.SCREEN, self.color, [self.draw_pos[0] * settings.SCALE, self.draw_pos[1] * settings.SCALE, 64 * settings.SCALE, 64 * settings.SCALE])
     def update(self):
         # self.pos[0] += self.velocity[0] * self.GAME.delta_time
         # self.pos[1] += self.velocity[1] * self.GAME.delta_time 
