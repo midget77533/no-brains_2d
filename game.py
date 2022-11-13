@@ -63,7 +63,7 @@ class Game:
         self.fgx = 0
     def run(self):
         #self.MENU = MainMenu(self)
-        self.mixer.music.play(0)
+        self.mixer.music.play(-1)
         self.load_level_data()
         self.SCREEN = pg.display.set_mode(RES)
         if FULL_SCREEN:
