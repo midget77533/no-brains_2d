@@ -201,6 +201,7 @@ class Player:
                 self.pos[1] = 64 * 24
                 if self.GAME.play_type == "online":
                     self.GAME.client.send_msg(["[MAP_CHANGE]", "[3]", 0])
+                    self.GAME.camera.spectating = True
                 else:
                     self.GAME.level += 1
                     self.reset_pos()
@@ -223,17 +224,14 @@ class Player:
         self.reset_pos()
         if self.GAME.play_type == "online":
             self.GAME.client.send_msg(["[MAP_CHANGE]", "[1]", 0])
-        # for i in range(8):
-        #     self.anim_frame += 1
-        #     self.draw()
-        #     time.sleep(.1)
-        #     pg.display.update()
+
         self.anim_frame = 0
         self.alive = True
     def reset_pos(self):
+        self.GAME.camera.spectating = False
         self.pos = self.GAME.check_point
-        self.velocity = [0,0]
-        self.GAME.camera.pos = self.pos
+        self.velocity = [0,-5]
+        #self.GAME.camera.pos = self.pos
         self.tb1 = Button(self.GAME, 20, 100, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)
         self.tb2 = Button(self.GAME, 20, 170, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)
         self.tb3 = Button(self.GAME, 20, 240, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)

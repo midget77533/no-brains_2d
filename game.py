@@ -12,6 +12,7 @@ from networking import *
 import pickle, os, csv
 
 default_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 15)
+pop_up_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 45)
 msg_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 30)
 
 chat_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', 20)
@@ -48,10 +49,12 @@ class Game:
         self.enough_players = False
         self.level = 0
         self.in_game_keys = []
-        self.player_num = 0
+        self.player_num = 255
         self.check_point = [64 * 4, 16 * 64]
         self.music = self.mixer.music.load('assets/audio/test_song.wav')
         settings.CAMERA_TARGET = self.player
+        self.sn = 0
+        self.tick_buffer = 0
     def run(self):
         #self.MENU = MainMenu(self)
         #self.mixer.music.play(0)
@@ -61,6 +64,9 @@ class Game:
             self.SCREEN = pg.display.set_mode(RES, pg.FULLSCREEN)
         while self.running:
             self.CLOCK.tick(FPS)
+            self.tick_buffer += (1 / 60) * self.delta_time
+            if self.tick_buffer > 60:
+                self.tick_buffer = 0
             for event in pg.event.get():
                 if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
                     self.running = False
@@ -83,6 +89,14 @@ class Game:
                             self.chat_text += event.unicode
                 if event.type == pg.KEYDOWN and event.key == pg.K_t and not settings.SHOW_MENU and self.play_type == "online":
                     self.typing = True
+                if event.type == pg.KEYDOWN and event.key == pg.K_LEFT and not settings.SHOW_MENU and self.play_type == "online":
+                    self.sn += 1
+                    if self.sn >= len(self.players):
+                        self.sn = 0
+                if event.type == pg.KEYDOWN and event.key == pg.K_RIGHT and not settings.SHOW_MENU and self.play_type == "online":
+                    self.sn -= 1
+                    if self.sn < 0:
+                        self.sn = len(self.players) - 1
                 if event.type == pg.KEYDOWN:
                     if self.MENU.selected_box >= 0:
                         if event.key == pg.K_BACKSPACE:
@@ -101,34 +115,44 @@ class Game:
         if self.play_type == "online" and  len(self.client.players) > 1:
             self.enough_players = True
             self.player_num = self.client.num
+            
         if settings.SHOW_MENU:
             if self.play_type == "online" and self.client.rsm:
                 settings.SHOW_MENU = False
+            # if self.play_type == "online":
+            #     self.client.send_msg("[GET_DATA]")
             self.MENU.update()
+        
         else:
             if self.play_type == "online":
-                lmc = self.client.lmc
-                change_in_keys = False
-                if lmc != []:
-                    if lmc[1] == "[0]":
-                        num = lmc[2].replace("[", "")
-                        num = num.replace("]", "")
-                        num = int(num)
-                        for obj in self.game_objects:
-                            if obj.type == num:
-                                obj.active = lmc[3]
-                    if lmc[1] == "[1]":
-                        self.player.reset_pos()
-                    if lmc[1] == "[2]":
-                        obj_pos = lmc[2]
-                        for go in self.game_objects:
-                            if go.pos == obj_pos:
-                                self.game_objects.remove(go)
-                                print('obj_destroyed')
-                    if lmc[1] == "[3]":
-                        pass#self.check_point = lmc[2]
 
-                    self.client.lmc = []
+                if self.camera.spectating:
+                    self.camera.tp = [self.players[self.sn][1], self.players[self.sn][2]]
+                    self.camera.pos = [self.players[self.sn][1], self.players[self.sn][2]]
+                change_in_keys = False
+                for lmc in self.client.lmc:
+                    if lmc != []:
+                        if lmc[1] == "[0]":
+                            num = lmc[2].replace("[", "")
+                            num = num.replace("]", "")
+                            num = int(num)
+                            for obj in self.game_objects:
+                                if obj.type == num:
+                                    obj.active = lmc[3]
+                        if lmc[1] == "[1]":
+                            self.player.reset_pos()
+                        if lmc[1] == "[2]":
+                            obj_pos = lmc[2]
+                            for go in self.game_objects:
+                                if go.pos == obj_pos:
+                                    self.game_objects.remove(go)
+                        if lmc[1] == "[3]":
+                            self.level = lmc[2]
+                            self.load_level_data()
+                            self.check_point = [64 * 4, 16 * 64]
+                            self.player.respawn_animation()
+
+                self.client.lmc = []
             self.player.update()          
         self.camera.update()
 
@@ -153,7 +177,7 @@ class Game:
                 go.update()
                 go.draw()
             if self.play_type == "online":
-                self.client.send_msg("[GET_DATA]")
+                #self.client.send_msg("[GET_DATA]")
                 self.players = self.client.players
                 p = self.player
                 for op in self.players:
@@ -165,14 +189,14 @@ class Game:
                         else:
                             self.SCREEN.blit(self.player.right_sprites[int(op[4])], (dx, dy))
 
-                        self.text_to_screen(op[5], dx + 32, dy - 20)
+                        self.text_to_screen(op[5], dx + 32, dy - 20, default_font, (0,0,0))
                         r1 = [p.pos[0], p.pos[1], p.coll_rect[2], p.coll_rect[3]]
                         r2 = [op[1], op[2], p.coll_rect[2], p.coll_rect[3]]
                         if r1[0] + r1[2] > r2[0] and r2[0] + r2[2] > r1[0] and r1[1] + r1[3] > r2[1] and r2[1] + r2[3] > r1[1]:
                             if r1[1] > r2[1]:
                                 self.player.draw()
                     
-                self.text_to_screen(self.name, self.player.draw_pos[0] + 32, self.player.draw_pos[1] - 20)
+                self.text_to_screen(self.name, self.player.draw_pos[0] + 32, self.player.draw_pos[1] - 20, default_font, (0,0,0))
                 if self.typing:
                     s = pg.Surface((self.SCREEN.get_width(), 100))
                     s.fill((0,0,0))
@@ -195,6 +219,9 @@ class Game:
                         self.SCREEN.blit(s, (0, self.SCREEN.get_height() - p + (m * a) - 150))
                         self.SCREEN.blit(surf, (0, self.SCREEN.get_height() - p + (m * a) - 150))
                         msg[1] -= 1 / 60 * self.delta_time
+                if self.camera.spectating:
+                    self.text_to_screen("SPECTATING",self.SCREEN.get_width() / 2,30 ,pop_up_font, (0,0,0))
+                    self.text_to_screen(str(self.players[self.sn][5]),self.SCREEN.get_width() / 2,70 ,pop_up_font, (0,0,0))
 
         pg.display.update()
     def load_level_data(self):
@@ -266,19 +293,21 @@ class Game:
                                 self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), True))
                             else:
                                 self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), False))
-                        elif int(tile) >= 9 and int(tile) < 20:
+                        elif int(tile) >= 9 and int(tile) < 19:
                             self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], False, int(tile), True))
                         if int(tile) >= 9 < 18:
                             self.in_game_keys.append([TILE_SPACING * y, TILE_SPACING * x, int(tile)])
+                        if int(tile) == 19:
+                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x + 1], [images[0],images[1],images[2],images[3],images[4],images[5],images[6],images[7],images[8]], False, int(tile), True))
                         if int(tile) == 20:
                             self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)], get_image(tile_sheet,64,64,BLACK, 7, 2)], False, int(tile), True))
                         if int(tile) == 21:
                             self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x + 1], [images[int(tile)]], False, int(tile), True))
-    def text_objects(self, txt):
-        txt_surf = default_font.render(txt, True, (0,0,0))
+    def text_objects(self, txt, f, c):
+        txt_surf = f.render(txt, True, c)
         return txt_surf, txt_surf.get_rect()
-    def text_to_screen(self, txt, cx, cy):
-        text_surf, text_rect = self.text_objects(txt)
+    def text_to_screen(self, txt, cx, cy, f, c):
+        text_surf, text_rect = self.text_objects(txt, f, c)
         text_rect.center = (cx), (cy)
         self.SCREEN.blit(text_surf, text_rect)
     def clear_screen(self):

@@ -80,7 +80,8 @@ class Server:
                             p[3] = data_v[3]
                             p[4] = data_v[4]
                             break
-                    
+                    for conn in self.connections:
+                        conn.send(pickle.dumps(["[DATA]",self.players]))
                 if not data:
                     self.connections.remove(c)
                     for p in range(len(self.players)):
@@ -140,8 +141,7 @@ class Client:
                 except:
                     pass
             if msg[0] == "[MAP_CHANGE]":
-                self.lmc = msg
-                print('MAP_CHANGE')
+                self.lmc.append(msg)
 def start_server(host, port, g):
     server = Server(host, port, g)
     server.start()    
