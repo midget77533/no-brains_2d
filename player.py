@@ -89,7 +89,7 @@ class Player:
         if not self.pos_locked:
             self.pos[0] += self.velocity[0] * self.GAME.delta_time
             self.pos[1] += self.velocity[1] * self.GAME.delta_time
-        if abs(self.velocity[0]) > 2 or abs(self.velocity[1]) > 2:
+        if (abs(self.velocity[0]) > 2 or abs(self.velocity[1]) > 2) and not self.completed_level:
             if self.GAME.play_type == "online":
                 self.GAME.client.send_msg([self.GAME.client.id, self.pos[0], self.pos[1], self.direction, self.anim_frame])
         if keys_pressed[pg.K_p]:
@@ -130,7 +130,24 @@ class Player:
                         active = True
             if self.GAME.play_type == "online":
                 self.GAME.client.send_msg(["[MAP_CHANGE]", "[0]", f"[{num}]", active])
+        # pf = 0
+        # if self.completed_level:
+        #     for p in self.GAME.players:
+        #         if p[1] == -64 and p[2] == -64:
+        #             pf += 1
+
+        # if pf == len(self.GAME.players) and self.completed_level:
+        #     self.next_level()
+        #     # self.GAME.level += 1
+        #     # print('MOVING TO NEXT LVL')
+        #     # self.pos = [0,0]
+        #     # self.GAME.check_point = [64 * 4, 16 * 64]
+        #     # self.respawn_animation()
+            
         self.move()
+    def next_level(self):
+        if self.GAME.play_type == "online":
+            self.GAME.client.send_msg(["[MAP_CHANGE]", "[3]", "[]"])
     def check_collision(self, pos):
         for go in self.GAME.game_objects:
             if go.collidable and go.active:
@@ -199,16 +216,18 @@ class Player:
             if (pos[0] + self.coll_rect[2] - 5 > go.pos[0] and pos[0] + 5 < go.pos[0] + go.rect[2] and pos[1] + self.coll_rect[3] > go.pos[1] and pos[1] < go.pos[1] + go.rect[3]) and not self.completed_level and go.type == 19:
                 self.completed_level = True
                 self.pos_locked = True
-                self.pos[1] = 64 * 24
+                self.pos[0] = go.pos[0]
+                self.pos[1] = go.pos[1]
+
                 if self.GAME.play_type == "online":
-                    self.GAME.client.send_msg(["[MAP_CHANGE]", "[3]", 0])
+                    self.GAME.client.send_msg([self.GAME.client.id, self.pos[0], self.pos[1], self.direction, self.anim_frame])
+                    # self.GAME.client.send_msg(["[MAP_CHANGE]", "[3]", "[]"])
                     self.GAME.camera.spectating = True
                 else:
                     self.GAME.level += 1
                     self.reset_pos()
                 break
-            else:
-                self.completed_level = False
+
         if self.GAME.play_type == "online":
             for p in self.GAME.client.players:
                 x = p[1]
@@ -225,7 +244,6 @@ class Player:
         self.reset_pos()
         if self.GAME.play_type == "online":
             self.GAME.client.send_msg(["[MAP_CHANGE]", "[1]", 0])
-
         self.anim_frame = 0
         self.alive = True
     def reset_pos(self):
@@ -254,6 +272,9 @@ class Player:
             self.respawn_animation()
             # if self.GAME.play_type == "online":
             #     self.GAME.client.send_msg(["[MAP_CHANGE]", "[1]", f"[]"])
+        if keys_pressed[pg.K_q] and self.completed_level:
+            print('NEXT LEVEL')
+            self.next_level()
         if keys_pressed[pg.K_SPACE] and self.grounded and not self.GAME.typing:
             self.pos[1] -= 5
             self.velocity[1] = -self.jump_power 

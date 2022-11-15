@@ -243,7 +243,7 @@ while run:
 		#update tile value
 		if pygame.mouse.get_pressed()[0] == 1:
 			if world_data[y][x] != current_tile:
-				world_data[y][x] = current_tile
+				world_data[y][x ] = current_tile
 		if pygame.mouse.get_pressed()[2] == 1:
 			world_data[y][x] = -1
 

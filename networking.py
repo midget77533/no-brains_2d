@@ -29,6 +29,7 @@ class Server:
             try:
                 data = c.recv(2048)
                 data_v = pickle.loads(data)
+                print(data_v)
                 for p in range(len(self.players)):
                     if self.players[p][0] == data_v[0]:
                         if data_v[1] == "[QUIT]":
@@ -55,17 +56,13 @@ class Server:
                     if data_v[1] == "[1]":
                         self.pfn = 0
                     if data_v[1] == "[3]":
-                        self.pfn += 1
-                        print('PLAYER FINISHED')
-                        if self.pfn >= len(self.players):
-                            self.current_level += 1
+                        #self.pfn += 1
+                        #print('PLAYER FINISHED')
+                        #if self.pfn >= len(self.players):
+                        self.current_level += 1
                         data_v[2] = self.current_level
-                    if (data_v[1] == "[3]" and self.pfn >= len(self.players)) or data_v[1] != "[3]":
-                        if data_v[1] == "[3]":
-                            self.pfn = 0
-                            print("FINISHED")
-                        for conn in self.connections:
-                            conn.send(pickle.dumps(data_v))
+                    for conn in self.connections:
+                        conn.send(pickle.dumps(data_v))
                 elif data_v == "[GET_DATA]":
                     c.send(pickle.dumps(["[DATA]",self.players]))
                 elif data_v == "[PLAY]":

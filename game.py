@@ -10,7 +10,6 @@ from camera import *
 from game_object import *
 from networking import *
 import pickle, os, csv
-
 default_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(15* settings.SCALE))
 pop_up_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(45* settings.SCALE))
 msg_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(30* settings.SCALE))
@@ -61,9 +60,12 @@ class Game:
         self.bgx = 0
         self.mgx = 0
         self.fgx = 0
+        self.nxt_level_btn = Button(self, 200 * settings.SCALE, 730 * settings.SCALE, pg.image.load("assets/textures/next_level_btn.png"), "[NEXTLVL]", 1* settings.SCALE, 1* settings.SCALE)
+        a = pg.image.load("assets/textures/restart_btn.png").get_width() * settings.SCALE
+        self.restart_btn = Button(self, settings.WIDTH - a - (200 * settings.SCALE), 730 * settings.SCALE, pg.image.load("assets/textures/restart_btn.png"), "[NEXTLVL]", 1* settings.SCALE, 1* settings.SCALE)
     def run(self):
         #self.MENU = MainMenu(self)
-        self.mixer.music.play(-1)
+        #self.mixer.music.play(-1)
         self.load_level_data()
         self.SCREEN = pg.display.set_mode(RES)
         if FULL_SCREEN:
@@ -121,7 +123,6 @@ class Game:
         if self.play_type == "online" and  len(self.client.players) > 1:
             self.enough_players = True
             self.player_num = self.client.num
-            
         if settings.SHOW_MENU:
             if self.play_type == "online" and self.client.rsm:
                 self.camera.pos[0] = 0
@@ -129,7 +130,6 @@ class Game:
             # if self.play_type == "online":
             #     self.client.send_msg("[GET_DATA]")
             self.MENU.update()
-        
         else:
             if self.play_type == "online":
                 if self.camera.spectating:
@@ -161,7 +161,6 @@ class Game:
                 self.client.lmc = []
             self.player.update()          
         self.camera.update()
-
     def draw(self):
         self.clear_screen()
         if settings.SHOW_MENU:
@@ -179,9 +178,7 @@ class Game:
                     wo.append(go)
             self.player.draw()
 
-            for go in wo:
-                go.update()
-                go.draw()
+
             if self.play_type == "online":
                 #self.client.send_msg("[GET_DATA]")
                 self.players = self.client.players
@@ -228,7 +225,16 @@ class Game:
                 if self.camera.spectating:
                     self.text_to_screen("SPECTATING",self.SCREEN.get_width() / 2,30 ,pop_up_font, (0,0,0))
                     self.text_to_screen(str(self.players[self.sn][5]),self.SCREEN.get_width() / 2,70 ,pop_up_font, (0,0,0))
-
+            if self.player.completed_level:
+                self.nxt_level_btn.draw()
+                self.restart_btn.draw()
+                if self.nxt_level_btn.check_click():
+                    self.player.next_level()
+                if self.restart_btn.check_click():
+                    self.player.respawn_animation()
+            for go in wo:
+                go.update()
+                go.draw()
         pg.display.update()
     def load_level_data(self):
         img_list = []
@@ -334,14 +340,14 @@ class Game:
                 bgi = self.bg[i]
                 w = bgi.get_width()
                 x = self.bgx + w * i
-                y = self.SCREEN.get_height() - bgi.get_height()
+                y = self.SCREEN.get_height() - bgi.get_height() - 100
                 if x + w > 0:
                     self.SCREEN.blit(bgi, (x, y))
             for i in range(len(self.mg)):
                 w = bgi.get_width()
                 bgi = self.mg[i]
                 x = self.mgx + w * i 
-                y = self.SCREEN.get_height() - bgi.get_height()
+                y = self.SCREEN.get_height() - bgi.get_height() - 0
                 if x + w > 0:
                     self.SCREEN.blit(bgi, (x, y))
             for i in range(len(self.fg)):
