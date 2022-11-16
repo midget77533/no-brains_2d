@@ -12,6 +12,7 @@ from networking import *
 import pickle, os, csv
 default_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(15* settings.SCALE))
 pop_up_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(45* settings.SCALE))
+coin_ui_font =  pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(35* settings.SCALE))
 msg_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(30* settings.SCALE))
 
 chat_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(20* settings.SCALE))
@@ -63,6 +64,8 @@ class Game:
         self.nxt_level_btn = Button(self, 200 * settings.SCALE, 730 * settings.SCALE, pg.image.load("assets/textures/next_level_btn.png"), "[NEXTLVL]", 1* settings.SCALE, 1* settings.SCALE)
         a = pg.image.load("assets/textures/restart_btn.png").get_width() * settings.SCALE
         self.restart_btn = Button(self, settings.WIDTH - a - (200 * settings.SCALE), 730 * settings.SCALE, pg.image.load("assets/textures/restart_btn.png"), "[NEXTLVL]", 1* settings.SCALE, 1* settings.SCALE)
+        self.coin_icon = None
+        self.collected_coins = []
     def run(self):
         #self.MENU = MainMenu(self)
         #self.mixer.music.play(-1)
@@ -232,6 +235,9 @@ class Game:
                     self.player.next_level()
                 if self.restart_btn.check_click():
                     self.player.respawn_animation()
+            if self.coin_icon != None:
+                self.SCREEN.blit(self.coin_icon, (20 * settings.SCALE, 20 * settings.SCALE))
+                self.text_to_screen(str(self.player.collected_coins), 100 * settings.SCALE, 50 * settings.SCALE, coin_ui_font, (255,255,255))
             for go in wo:
                 go.update()
                 go.draw()
@@ -243,10 +249,10 @@ class Game:
 
         images = []
         tile_sheet = pg.image.load('assets/textures/brick_tile_sheet.png')
-        w = tile_sheet.get_width()* settings.SCALE
-        h = tile_sheet.get_height()* settings.SCALE
+        w = tile_sheet.get_width()
+        h = tile_sheet.get_height()
         tile_sheet = pg.transform.scale(tile_sheet, (w, h))
-        TILE_SIZE = 64 * settings.SCALE
+        TILE_SIZE = 64 
         t1 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 0, 0)
         t2 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 1, 0)
         t3 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 2, 0)
@@ -269,8 +275,14 @@ class Game:
         t19 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 6, 0)
         t20 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 6, 1)
         t21 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 6, 2)
-        t22 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 7, 0)
 
+        t22 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 7, 0)
+        t23 = pg.transform.rotate(t22, 90 % 360)
+        t24 = pg.transform.rotate(t22, 180 % 360)
+        t25 = pg.transform.rotate(t22, 270 % 360)
+        t26 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 8, 0)
+        self.coin_icon = pg.transform.scale(t26, (64 * settings.SCALE, 64 * settings.SCALE))
+        t26 = pg.transform.scale(t26, (32 * settings.SCALE, 32 * settings.SCALE))
         images.append(t1)
         images.append(t2)
         images.append(t3)
@@ -294,7 +306,17 @@ class Game:
         images.append(t20)
         images.append(t21)
         images.append(t22)
-
+        images.append(t23)
+        images.append(t24)
+        images.append(t25)
+        images.append(t26)
+        for i in range(len(images)):
+            if i == 25:
+                img = pg.transform.scale(images[i], (32 * settings.SCALE, 32 * settings.SCALE))
+                images[i] = img
+            else:
+                img = pg.transform.scale(images[i], (64 * settings.SCALE, 64 * settings.SCALE))
+                images[i] = img
         self.game_objects = []
 
         TILE_SPACING = 64
@@ -317,8 +339,18 @@ class Game:
                             self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x + 1], [images[0],images[1],images[2],images[3],images[4],images[5],images[6],images[7],images[8]], False, int(tile), True))
                         if int(tile) == 20:
                             self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)], get_image(tile_sheet,64,64,BLACK, 7, 2)], False, int(tile), True))
-                        if int(tile) == 21:
+                        if int(tile) >= 21 and int(tile) < 25:
+
                             self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x + 1], [images[int(tile)]], False, int(tile), True))
+                        if int(tile) == 25:
+                            ac = False
+                            for i in self.collected_coins:
+                                if [TILE_SPACING * y,TILE_SPACING * x] == i:
+                                    print("CLEARED COIN")
+                                    ac = True
+                            if not ac:
+                                self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], False, int(tile), True))
+
     def text_objects(self, txt, f, c):
         txt_surf = f.render(txt, True, c)
         return txt_surf, txt_surf.get_rect()
@@ -331,7 +363,6 @@ class Game:
         if settings.SHOW_MENU:
             self.camera.pos[0] += 2
         if True:
-
             self.bgx = -self.camera.pos[0] * 0.1
             self.mgx = -self.camera.pos[0] * 0.2
             self.fgx = -self.camera.pos[0] * 0.4

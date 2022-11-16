@@ -43,6 +43,7 @@ class Player:
         self.pos_locked = False
         self.spawn_point = [64 * 4, 16 * 64]
         self.alive = True
+        self.collected_coins = 0
         self.pop_sound = self.GAME.mixer.Sound('assets/audio/pop.wav')
         images = []
         BLACK = (0,0,0)
@@ -148,6 +149,11 @@ class Player:
     def next_level(self):
         if self.GAME.play_type == "online":
             self.GAME.client.send_msg(["[MAP_CHANGE]", "[3]", "[]"])
+        else:
+            self.GAME.level += 1
+            self.GAME.load_level_data()
+            self.GAME.check_point = [64 * 4, 16 * 64]
+            self.respawn_animation()
     def check_collision(self, pos):
         for go in self.GAME.game_objects:
             if go.collidable and go.active:
@@ -184,9 +190,15 @@ class Player:
                 #     self.GAME.client.send_msg(["[MAP_CHANGE]", "[3]", go.pos])
                 go.stage = 1
             #die
-            if (pos[0] + self.coll_rect[2] - 10 > go.pos[0] and pos[0] + 10 < go.pos[0] + go.rect[2] and pos[1] + self.coll_rect[3] > go.pos[1] and pos[1] < go.pos[1] + go.rect[3]) and go.type == 21:
+            if (pos[0] + self.coll_rect[2] - 10 > go.pos[0] and pos[0] + 10 < go.pos[0] + go.rect[2] and pos[1] + self.coll_rect[3] > go.pos[1] and pos[1] < go.pos[1] + go.rect[3]) and go.type > 20 and go.type < 25:
                 self.pop_sound.play()
                 self.death_animation()
+            #coins
+            if (pos[0] + self.coll_rect[2] - 10 > go.pos[0] and pos[0] + 10 < go.pos[0] + go.rect[2] and pos[1] + self.coll_rect[3] > go.pos[1] and pos[1] < go.pos[1] + go.rect[3]) and go.type == 25:
+                self.collected_coins += 1
+                self.GAME.collected_coins.append(go.pos)
+                print(go.pos)
+                self.GAME.game_objects.remove(go)
             #keys
             if (pos[0] + self.coll_rect[2] > go.pos[0] and pos[0] < go.pos[0] + go.rect[2] and pos[1] + self.coll_rect[3] > go.pos[1] and pos[1] < go.pos[1] + go.rect[3]) and go.type < 18 and go.type > 8:
                 if self.tb1.name == "[T|-1]":
@@ -224,8 +236,7 @@ class Player:
                     # self.GAME.client.send_msg(["[MAP_CHANGE]", "[3]", "[]"])
                     self.GAME.camera.spectating = True
                 else:
-                    self.GAME.level += 1
-                    self.reset_pos()
+                    self.next_level()
                 break
 
         if self.GAME.play_type == "online":

@@ -75,7 +75,13 @@ t18 = get_image(tile_sheet,64,64,BLACK, 5, 2)
 t19 = get_image(tile_sheet,64,64,BLACK, 6, 0)
 t20 = get_image(tile_sheet,64,64,BLACK, 6, 1)
 t21 = get_image(tile_sheet,64,64,BLACK, 6, 2)
+
 t22 = get_image(tile_sheet,64,64,BLACK, 7, 0)
+t23 = pygame.transform.rotate(t22, 90 % 360)
+t24 = pygame.transform.rotate(t22, 180 % 360)
+t25 = pygame.transform.rotate(t22, 270 % 360)
+
+t26 = get_image(tile_sheet,64,64,BLACK, 8, 0)
 
 images.append(t1)
 images.append(t2)
@@ -100,6 +106,11 @@ images.append(t19)
 images.append(t20)
 images.append(t21)
 images.append(t22)
+images.append(t23)
+images.append(t24)
+images.append(t25)
+images.append(t26)
+
 for x in range(len(images)):
 	img = pygame.transform.scale(images[x], (TILE_SIZE, TILE_SIZE))
 	img_list.append(img)
@@ -149,6 +160,7 @@ def draw_world():
 		for x, tile in enumerate(row):
 			if tile >= 0:
 				screen.blit(img_list[tile], (x * TILE_SIZE - scroll, y * TILE_SIZE))
+
 def auto_make():
 	for y, row in enumerate(world_data):
 		for x, tile in enumerate(row):
@@ -194,9 +206,9 @@ while run:
 	draw_bg()
 	draw_grid()
 	draw_world()
+	pygame.draw.rect(screen, GREEN, (0, 700, SCREEN_WIDTH + 300, 100))
 	kp = pygame.key.get_pressed()
-	if kp[pygame.K_p]:
-		auto_make()
+
 
 	draw_text(f'Level: {level}', font, WHITE, 10, SCREEN_HEIGHT + LOWER_MARGIN - 90)
 	
@@ -241,10 +253,20 @@ while run:
 	#check that the coordinates are within the tile area
 	if pos[0] < SCREEN_WIDTH and pos[1] < SCREEN_HEIGHT:
 		#update tile value
-		if pygame.mouse.get_pressed()[0] == 1:
+		if kp[pygame.K_1] and pygame.mouse.get_pressed()[0] == 1 and world_data[y][x] >= 21 < 25:
+			world_data[y][x] = 21
+		if kp[pygame.K_2] and pygame.mouse.get_pressed()[0] == 1 and world_data[y][x] >= 21 < 25:
+			world_data[y][x] = 22
+		if kp[pygame.K_3] and pygame.mouse.get_pressed()[0] == 1 and world_data[y][x] >= 21 < 25:
+			world_data[y][x] = 23
+		if kp[pygame.K_4] and pygame.mouse.get_pressed()[0] == 1 and world_data[y][x] >= 21 < 25:
+			world_data[y][x] = 24
+		
+		elif pygame.mouse.get_pressed()[0] == 1:
 			if world_data[y][x] != current_tile:
 				world_data[y][x ] = current_tile
-		if pygame.mouse.get_pressed()[2] == 1:
+			
+		elif pygame.mouse.get_pressed()[2] == 1:
 			world_data[y][x] = -1
 
 
