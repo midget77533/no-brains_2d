@@ -156,8 +156,17 @@ class Player:
             self.respawn_animation()
     def check_collision(self, pos):
         for go in self.GAME.game_objects:
+            #HORIZONTAL PLATFORM
+            if (pos[0] + 64 > go.pos[0] and pos[0] < go.pos[0] + 64 and pos[1] + 65 > go.pos[1] and pos[1] < go.pos[1] + 64) and (go.type == 27 or go.type == 28):
+                self.pos[0] += go.velocity[0] * self.GAME.delta_time
+                self.grounded = True
+                self.pos[1] = go.pos[1] - 63
+                self.velocity[1] = 0
+                if self.GAME.play_type == "online":
+                    self.GAME.client.send_msg([self.GAME.client.id, self.pos[0], self.pos[1], self.direction, self.anim_frame])
+
             if go.collidable and go.active:
-                if (pos[0] + self.coll_rect[2] - 5 > go.pos[0] and pos[0] + 5 < go.pos[0] + go.rect[2]) and (pos[1] + self.coll_rect[3] + 1> go.pos[1] and pos[1] < go.pos[1]) and go.type != 18:
+                if (pos[0] + self.coll_rect[2] - 5 > go.pos[0] and pos[0] + 5 < go.pos[0] + go.rect[2]) and (pos[1] + self.coll_rect[3] + 1> go.pos[1] and pos[1] < go.pos[1]) and go.type != 18 and go.type != 29:
                     self.grounded = True
                     self.pos[1] = go.pos[1] - self.coll_rect[3]
                     if self.velocity[1] > 1:
@@ -168,7 +177,7 @@ class Player:
                 else:
                     self.grounded = False
         for go in self.GAME.game_objects:
-            if go.collidable and go.active:
+            if go.collidable and go.active and go.type != 29:
                 if (pos[0] + self.coll_rect[2] - 5 > go.pos[0] and pos[0] + 5 < go.pos[0] + go.rect[2]) and (pos[1] < go.pos[1] + go.rect[3] and pos[1] > go.pos[1]):
                     self.pos[1] = go.pos[1] + go.rect[3] + 1
                     self.velocity[1] = 2
@@ -199,7 +208,15 @@ class Player:
                 self.GAME.collected_coins.append(go.pos)
                 print(go.pos)
                 self.GAME.game_objects.remove(go)
+            #key remover
+            if (pos[0] + self.coll_rect[2] - 10 > go.pos[0] and pos[0] + 10 < go.pos[0] + go.rect[2] and pos[1] + self.coll_rect[3] > go.pos[1] and pos[1] < go.pos[1] + go.rect[3]) and go.type == 26:
+                self.tb1 = Button(self.GAME, 20, 100, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)
+                self.tb2 = Button(self.GAME, 20, 170, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)
+                self.tb3 = Button(self.GAME, 20, 240, pg.image.load("assets/textures/multi_player_btn.png"), "[T|-1]", 1, 1)
+                #print('HIT KEY REMOVER')
+
             #keys
+            
             if (pos[0] + self.coll_rect[2] > go.pos[0] and pos[0] < go.pos[0] + go.rect[2] and pos[1] + self.coll_rect[3] > go.pos[1] and pos[1] < go.pos[1] + go.rect[3]) and go.type < 18 and go.type > 8:
                 if self.tb1.name == "[T|-1]":
                     self.tb1.name = f"[T|{go.type - 9}]" 
@@ -287,7 +304,7 @@ class Player:
             print('NEXT LEVEL')
             self.next_level()
         if keys_pressed[pg.K_SPACE] and self.grounded and not self.GAME.typing:
-            self.pos[1] -= 5
+            self.pos[1] -= 5 * self.GAME.delta_time
             self.velocity[1] = -self.jump_power 
             self.grounded = False
         if keys_pressed[pg.K_a] and not self.GAME.typing:

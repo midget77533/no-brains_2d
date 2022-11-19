@@ -47,7 +47,7 @@ class Game:
         self.mouse_still_down = False
         self.play_type = "undecided"
         self.enough_players = False
-        self.level = 0
+        self.level = 6
         self.in_game_keys = []
         self.player_num = 255
         self.check_point = [64 * 4, 16 * 64]
@@ -283,6 +283,10 @@ class Game:
         t26 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 8, 0)
         self.coin_icon = pg.transform.scale(t26, (64 * settings.SCALE, 64 * settings.SCALE))
         t26 = pg.transform.scale(t26, (32 * settings.SCALE, 32 * settings.SCALE))
+        t27 = get_image(tile_sheet,64,64,BLACK, 8, 1)
+        t28 = get_image(tile_sheet,64,64,BLACK, 9, 0)
+        t29 = get_image(tile_sheet,64,64,BLACK, 10, 0)
+        t30 = get_image(tile_sheet,64,64,(255,255,255), 9, 2)
         images.append(t1)
         images.append(t2)
         images.append(t3)
@@ -310,6 +314,10 @@ class Game:
         images.append(t24)
         images.append(t25)
         images.append(t26)
+        images.append(t27)
+        images.append(t28)
+        images.append(t29)
+        images.append(t30)
         for i in range(len(images)):
             if i == 25:
                 img = pg.transform.scale(images[i], (32 * settings.SCALE, 32 * settings.SCALE))
@@ -328,20 +336,20 @@ class Game:
                     if int(tile) >= 0:
                         if int(tile) < 9:
                             if int(tile) < 6:
-                                self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), True))
+                                self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), True, [0,0]))
                             else:
-                                self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), False))
+                                self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), False, [0,0]))
                         elif int(tile) >= 9 and int(tile) < 19:
-                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], False, int(tile), True))
+                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], False, int(tile), True, [0,0]))
                         if int(tile) >= 9 < 18:
                             self.in_game_keys.append([TILE_SPACING * y, TILE_SPACING * x, int(tile)])
                         if int(tile) == 19:
-                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x + 1], [images[0],images[1],images[2],images[3],images[4],images[5],images[6],images[7],images[8]], False, int(tile), True))
+                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x + 1], [images[0],images[1],images[2],images[3],images[4],images[5],images[6],images[7],images[8]], False, int(tile), True, [0,0]))
                         if int(tile) == 20:
-                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)], get_image(tile_sheet,64,64,BLACK, 7, 2)], False, int(tile), True))
+                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)], get_image(tile_sheet,64,64,BLACK, 7, 2)], False, int(tile), True, [0,0]))
                         if int(tile) >= 21 and int(tile) < 25:
 
-                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x + 1], [images[int(tile)]], False, int(tile), True))
+                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x + 1], [images[int(tile)]], False, int(tile), True, [0,0]))
                         if int(tile) == 25:
                             ac = False
                             for i in self.collected_coins:
@@ -349,7 +357,15 @@ class Game:
                                     print("CLEARED COIN")
                                     ac = True
                             if not ac:
-                                self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], False, int(tile), True))
+                                self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], False, int(tile), True, [0,0]))
+                        if int(tile) == 26:
+                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], False, int(tile), True, [0,0]))
+                        if int(tile) == 27:
+                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), True, [3,0]))
+                        if int(tile) == 28:
+                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), True, [0,3]))
+                        if int(tile) == 29:
+                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), True, [0,0]))
 
     def text_objects(self, txt, f, c):
         txt_surf = f.render(txt, True, c)

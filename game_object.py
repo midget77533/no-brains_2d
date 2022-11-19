@@ -9,13 +9,14 @@ def get_image(sheet, width, height,color, col, row):
     return img
 
 class GameObject:
-    def __init__(self, game, pos, images, collidable, t, a):
+    def __init__(self, game, pos, images, collidable, t, a, v):
         self.GAME = game
         self.images = images
         self.animation_frame = 0
         self.frame_speed = 1
         self.pos = pos
-        self.velocity = [0,0]
+        self.velocity = v
+        self.og_vel = v
         self.draw_pos = [0,0]
         self.collidable = collidable
         self.rect = self.images[0].get_rect()
@@ -30,19 +31,28 @@ class GameObject:
         self.b = 0
         self.shift_speed = 5
         self.draw_pos = [self.draw_pos[0] * settings.SCALE, self.draw_pos[1] * settings.SCALE]
+        self.moving = False
+        if self.velocity[0] != 0 or self.velocity[1] != 0:
+            self.moving = True
     def draw(self):
-        if self.active and (self.type != 20 and self.type != 19):
-            i = self.images[0]
-            i.set_alpha(255)
-            self.images.append(i)
-            self.GAME.SCREEN.blit(i, (self.draw_pos[0] * settings.SCALE, self.draw_pos[1] * settings.SCALE))
-        elif (self.type != 20 and self.type != 19):
-            i = self.images[0]
-            i.set_alpha(100)
-            self.images.append(i)
-            self.GAME.SCREEN.blit(i, (self.draw_pos[0] * settings.SCALE, self.draw_pos[1] * settings.SCALE))
-        if self.type == 20:
-            self.GAME.SCREEN.blit(self.images[self.stage], (self.draw_pos[0] * settings.SCALE, self.draw_pos[1] * settings.SCALE))
+        if self.type != 29:
+            if self.active and (self.type != 20 and self.type != 19 and self.type != 26):
+                i = self.images[0]
+                i.set_alpha(255)
+                self.images.append(i)
+                self.GAME.SCREEN.blit(i, (self.draw_pos[0] * settings.SCALE, self.draw_pos[1] * settings.SCALE))
+            elif (self.type != 20 and self.type != 19):
+                i = self.images[0]
+                i.set_alpha(100)
+                self.images.append(i)
+                self.GAME.SCREEN.blit(i, (self.draw_pos[0] * settings.SCALE, self.draw_pos[1] * settings.SCALE))
+            if self.type == 20:
+                self.GAME.SCREEN.blit(self.images[self.stage], (self.draw_pos[0] * settings.SCALE, self.draw_pos[1] * settings.SCALE))
+            if self.type == 26:
+                i = self.images[0]
+                i.set_alpha(100)
+                #self.images.append(i)
+                self.GAME.SCREEN.blit(i, (self.draw_pos[0] * settings.SCALE, self.draw_pos[1] * settings.SCALE))
         #pg.draw.rect(self.GAME.SCREEN, (255,255,0), [self.pos[0]* settings.SCALE, self.draw_pos[1]* settings.SCALE, 64 * settings.SCALE, 64 * settings.SCALE])
         if self.type == 19:
             if self.mc == 0:
@@ -85,8 +95,30 @@ class GameObject:
             #print(self.color)
             pg.draw.rect(self.GAME.SCREEN, self.color, [self.draw_pos[0] * settings.SCALE, self.draw_pos[1] * settings.SCALE, 64 * settings.SCALE, 64 * settings.SCALE])
     def update(self):
-        # self.pos[0] += self.velocity[0] * self.GAME.delta_time
-        # self.pos[1] += self.velocity[1] * self.GAME.delta_time 
+        if self.moving:
+            self.pos[0] += self.velocity[0] * self.GAME.delta_time
+            self.pos[1] += self.velocity[1] * self.GAME.delta_time 
+            for go in self.GAME.game_objects:
+                x = self.pos[0]
+                y = self.pos[1]
+                x1 = go.pos[0]
+                y1 = go.pos[1]
+                if go != self and go.active and go.type != 25:
+                    if x < x1+ 64 and x > x1 and y + 64 > y1 and y < y1 + 64:
+                        self.pos[0] -= -2
+                        self.velocity[0] *= -1
+                        
+                    if x + 64 > x1 and x < x1 and y + 64 > y1 and y < y1 + 64:
+                        self.pos[0] -= 2
+                        self.velocity[0] *= -1
+                    if x + 64 > x1 and x < x1 + 64 and y + 64 > y1 and y < y1:
+                        self.pos[1] -= 2
+                        self.velocity[1] *= -1
+                    if x + 64 > x1 and x < x1 + 64 and y < y1 + 64 and y > y1:
+                        self.pos[1] -= -2
+                        self.velocity[1] *= -1 
+                        
+
         self.draw_pos[0] = -self.GAME.camera.pos[0] + self.pos[0] + self.GAME.camera.offset[0]
         self.draw_pos[1] = -self.GAME.camera.pos[1] + self.pos[1] + self.GAME.camera.offset[1]
 

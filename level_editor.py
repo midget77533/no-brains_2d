@@ -23,7 +23,7 @@ pygame.display.set_caption('Level Editor')
 ROWS = 20
 MAX_COLS = 150
 TILE_SIZE = SCREEN_HEIGHT // ROWS
-TILE_TYPES = 30
+TILE_TYPES = 35
 level = 0
 current_tile = 0
 scroll_left = False
@@ -82,7 +82,10 @@ t24 = pygame.transform.rotate(t22, 180 % 360)
 t25 = pygame.transform.rotate(t22, 270 % 360)
 
 t26 = get_image(tile_sheet,64,64,BLACK, 8, 0)
-
+t27 = get_image(tile_sheet,64,64,BLACK, 8, 1)
+t28 = get_image(tile_sheet,64,64,BLACK, 9, 0)
+t29 = get_image(tile_sheet,64,64,BLACK, 10, 0)
+t30 = get_image(tile_sheet,64,64,(255,255,255), 9, 2)
 images.append(t1)
 images.append(t2)
 images.append(t3)
@@ -110,7 +113,10 @@ images.append(t23)
 images.append(t24)
 images.append(t25)
 images.append(t26)
-
+images.append(t27)
+images.append(t28)
+images.append(t29)
+images.append(t30)
 for x in range(len(images)):
 	img = pygame.transform.scale(images[x], (TILE_SIZE, TILE_SIZE))
 	img_list.append(img)

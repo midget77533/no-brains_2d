@@ -11,7 +11,7 @@ class Server:
         self.p_num = 0
         self.GAME = game
         self.pfn = 0
-        self.current_level = 0
+        self.current_level = 6
     def start(self):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.bind((self.host, self.port))
