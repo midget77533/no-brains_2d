@@ -47,7 +47,7 @@ class Game:
         self.mouse_still_down = False
         self.play_type = "undecided"
         self.enough_players = False
-        self.level = 6
+        self.level = 0
         self.in_game_keys = []
         self.player_num = 255
         self.check_point = [64 * 4, 16 * 64]
