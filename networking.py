@@ -13,7 +13,7 @@ class Server:
         self.pfn = 0
         self.current_level = 0
     def start(self):
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
         self.s.bind((self.host, self.port))
         self.s.listen(2)
         print(f'server succsesfully made on {self.host, self.port}')
@@ -29,7 +29,7 @@ class Server:
             try:
                 data = c.recv(2048)
                 data_v = pickle.loads(data)
-                print(data_v)
+                #print(data_v)
                 for p in range(len(self.players)):
                     if self.players[p][0] == data_v[0]:
                         if data_v[1] == "[QUIT]":
@@ -96,7 +96,7 @@ class Client:
         self.host = host
         self.port = port
         self.connections = []
-        self.c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.c = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
         self.format = 'utf-8'
         self.id = None
         self.players = []
@@ -110,7 +110,7 @@ class Client:
         self.lvl = 0
     def run(self):
         self.running = True
-        self.c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.c = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
         self.c.connect((self.host,self.port))
         t = threading.Thread(target=self.receive_msg)
         t.start()

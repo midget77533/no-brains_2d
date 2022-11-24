@@ -6,6 +6,7 @@ import settings
 import threading
 from buttons import *
 from networking import *
+import requests
 pg.init()
 
 default_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(100 * settings.SCALE))
@@ -13,6 +14,7 @@ lable_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(50 * sett
 txt_field_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(25 * settings.SCALE))
 caption_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(15 * settings.SCALE))
 lvl_select_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(80 * settings.SCALE))
+
 class MainMenu:
     def __init__(self, game):
         self.GAME = game
@@ -34,7 +36,7 @@ class MainMenu:
         self.play_btn = Button(self.GAME, 1050 * settings.SCALE, 610 * settings.SCALE, pg.image.load("assets/textures/play_btn.png"), "[PLAY]", 1* settings.SCALE, 1* settings.SCALE)
         self.page = "main_menu"
         self.text_fields = [pg.Rect(330 * settings.SCALE, 300 * settings.SCALE, 410 * settings.SCALE, 60 * settings.SCALE), pg.Rect(330 * settings.SCALE, 550 * settings.SCALE, 410 * settings.SCALE, 60 * settings.SCALE)]
-        self.text_in_fields = ['', socket.gethostbyname(socket.gethostname())]
+        self.text_in_fields = ['', '']
         self.selected_box = -1
         self.bbtn_destination = "main_menu"
         self.players = []
@@ -207,10 +209,10 @@ class MainMenu:
     def create_game(self):
         self.bbtn_destination = self.page
         self.page = "lobby_menu"
-        SERVER = socket.gethostbyname(socket.gethostname())
-        PORT = 12345
+        SERVER =  self.text_in_fields[1]#requests.get('https://api.ipify.org').text
+        PORT = 5050
         self.GAME.client = Client(SERVER, PORT)
-        self.SERVER  = Server(SERVER, PORT, self.GAME)
+        self.SERVER = Server(SERVER, PORT, self.GAME)
         s = threading.Thread(target=self.SERVER.start)
         s.start()
         self.GAME.client.run()
@@ -222,7 +224,7 @@ class MainMenu:
     def join_game(self):
         self.page = "lobby_menu"
         SERVER = self.text_in_fields[1]
-        PORT = 12345
+        PORT = 5050
         self.GAME.client = Client(SERVER, PORT)
         self.GAME.client.run()
         self.GAME.name = self.text_in_fields[0]

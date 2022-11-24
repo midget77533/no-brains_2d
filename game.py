@@ -11,6 +11,7 @@ from game_object import *
 from networking import *
 import pickle, os, csv
 from fade_animation import *
+import pyperclip
 default_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(15* settings.SCALE))
 pop_up_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(45* settings.SCALE))
 coin_ui_font =  pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(35* settings.SCALE))
@@ -85,6 +86,11 @@ class Game:
             self.tick_buffer += (1 / 60) * self.delta_time
             if self.tick_buffer > 60:
                 self.tick_buffer = 0
+            kp = pg.key.get_pressed()
+            
+            if kp[pg.K_LCTRL] and kp[pg.K_v] and pyperclip.paste() != "None":
+                if self.MENU.selected_box >= 0:
+                    self.MENU.text_in_fields[self.MENU.selected_box] = pyperclip.paste()
             for event in pg.event.get():
                 if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
                     self.running = False
@@ -119,7 +125,7 @@ class Game:
                     if self.MENU.selected_box >= 0:
                         if event.key == pg.K_BACKSPACE:
                             self.MENU.text_in_fields[self.MENU.selected_box] = self.MENU.text_in_fields[self.MENU.selected_box][:-1]
-                        elif len(self.MENU.text_in_fields[self.MENU.selected_box]) < 15:
+                        elif (len(self.MENU.text_in_fields[self.MENU.selected_box]) < 15 and self.MENU.selected_box == 0) or self.MENU.selected_box == 1:
                             self.MENU.text_in_fields[self.MENU.selected_box] += event.unicode
             self.set_delta_time()
             self.update()
