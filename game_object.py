@@ -104,18 +104,18 @@ class GameObject:
                 x1 = go.pos[0]
                 y1 = go.pos[1]
                 if go != self and go.active and go.type != 25 and go.type != 26:
-                    if x < x1+ 64 and x > x1 and y + 64 > y1 and y < y1 + 64:
-                        self.pos[0] -= -2
+                    if x < x1+ 64 and x > x1 and y + 64 > y1 and y < y1 + 64 and self.type == 27:
+                        self.pos[0] += 2
                         self.velocity[0] *= -1
                         
-                    if x + 64 > x1 and x < x1 and y + 64 > y1 and y < y1 + 64:
+                    if x + 64 > x1 and x < x1 and y + 64 > y1 and y < y1 + 6 and self.type == 27:
                         self.pos[0] -= 2
                         self.velocity[0] *= -1
-                    if x + 64 > x1 and x < x1 + 64 and y + 64 > y1 and y < y1:
+                    if x + 64 > x1 and x < x1 + 64 and y + 64 > y1 and y < y1 and self.type == 28:
                         self.pos[1] -= 2
                         self.velocity[1] *= -1
-                    if x + 64 > x1 and x < x1 + 64 and y < y1 + 64 and y > y1:
-                        self.pos[1] -= -2
+                    if x + 64 > x1 and x < x1 + 64 and y < y1 + 64 and y > y1 and self.type == 28:
+                        self.pos[1] += 2
                         self.velocity[1] *= -1 
                         
 

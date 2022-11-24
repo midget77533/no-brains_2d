@@ -31,7 +31,7 @@ scroll_right = False
 scroll = 0
 scroll_speed = 1
 
-lfpn = 2
+lfpn = 1
 
 #load images
 pine1_img = pygame.image.load('assets/level_editor/images/foreground.png').convert_alpha()

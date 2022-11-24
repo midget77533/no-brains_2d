@@ -117,6 +117,7 @@ class MainMenu:
                     
                     self.bbtn_destination = self.page
                     self.GAME.level = lvl
+                    self.GAME.lt = 1
                     self.sop = True
         if self.page == "multi_player_options":
             for btn in self.lvl_buttons:
@@ -131,6 +132,7 @@ class MainMenu:
                     self.sop = True
                     self.GAME.client.send_msg(["[PLAY]", lvl])
                     self.GAME.camera.pos[0] = 0
+                    self.GAME.lt = len(self.GAME.players)
                     print(self.SERVER.current_level)
 
 
