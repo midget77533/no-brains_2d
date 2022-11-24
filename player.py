@@ -4,6 +4,7 @@ import os, math, time
 from networking import *
 from buttons import *
 import settings
+from fade_animation import *
 def get_image(sheet, width, height,color, col, row):
     img = pg.Surface((width, height))
     img.blit(sheet, (0,0), ((col * width),(row * height),width,height))
@@ -44,7 +45,10 @@ class Player:
         self.spawn_point = [64 * 4, 16 * 64]
         self.alive = True
         self.collected_coins = 0
+        self.outro_fade = ScreenFade(self, (0,0,0), 5, 0)
+        self.intro_fade = ScreenFade(self, (0,0,0), 5, 1)
         self.pop_sound = self.GAME.mixer.Sound('assets/audio/pop.wav')
+        self.pop_sound.set_volume(0)
         images = []
         BLACK = (0,0,0)
         tile_sheet = pg.image.load('assets/textures/brick_tile_sheet.png')
@@ -179,7 +183,7 @@ class Player:
         for go in self.GAME.game_objects:
             if go.collidable and go.active and go.type != 29:
                 if (pos[0] + self.coll_rect[2] - 5 > go.pos[0] and pos[0] + 5 < go.pos[0] + go.rect[2]) and (pos[1] < go.pos[1] + go.rect[3] and pos[1] > go.pos[1]):
-                    self.pos[1] = go.pos[1] + go.rect[3] + 1
+                    self.pos[1] = go.pos[1] + go.rect[3]
                     self.velocity[1] = 2
                     break
                 if (pos[0] + self.coll_rect[2] + self.velocity[0] > go.pos[0] and pos[0] < go.pos[0]) and (pos[1] + self.coll_rect[3] - 1> go.pos[1] and pos[1] < go.pos[1] + go.rect[3]) and go.type != 18:
@@ -243,6 +247,7 @@ class Player:
                         self.GAME.client.send_msg(["[MAP_CHANGE]", "[2]", go.pos])
                     self.GAME.game_objects.remove(go)
             if (pos[0] + self.coll_rect[2] - 5 > go.pos[0] and pos[0] + 5 < go.pos[0] + go.rect[2] and pos[1] + self.coll_rect[3] > go.pos[1] and pos[1] < go.pos[1] + go.rect[3]) and not self.completed_level and go.type == 19:
+                
                 self.completed_level = True
                 self.pos_locked = True
                 self.pos[0] = go.pos[0]
@@ -253,7 +258,8 @@ class Player:
                     # self.GAME.client.send_msg(["[MAP_CHANGE]", "[3]", "[]"])
                     self.GAME.camera.spectating = True
                 else:
-                    self.next_level()
+                    #self.next_level()
+                    pass
                 break
 
         if self.GAME.play_type == "online":

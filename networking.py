@@ -65,9 +65,9 @@ class Server:
                         conn.send(pickle.dumps(data_v))
                 elif data_v == "[GET_DATA]":
                     c.send(pickle.dumps(["[DATA]",self.players]))
-                elif data_v == "[PLAY]":
+                elif data_v[0] == "[PLAY]":
                     for conn in self.connections:
-                        conn.send(pickle.dumps("[PLAY]"))
+                        conn.send(pickle.dumps(data_v))
                 else:
                     for p in self.players:
                         if p[0] == data_v[0]:
@@ -107,6 +107,7 @@ class Client:
         self.rsm = False
         self.lmc = []
         self.num = 0
+        self.lvl = 0
     def run(self):
         self.running = True
         self.c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -120,8 +121,10 @@ class Client:
         while self.running:
             received_msg = self.c.recv(2048)
             msg = pickle.loads(received_msg)
-            if msg == "[PLAY]":
+            if msg[0] == "[PLAY]":
                 self.rsm = True
+                print(msg)
+                self.lvl = msg[1]
             if msg[0] == "[URNUM]":
                 self.id = msg[1]
                 self.num = msg[2]

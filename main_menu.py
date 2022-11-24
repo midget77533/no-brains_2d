@@ -12,6 +12,7 @@ default_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(100 * s
 lable_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(50 * settings.SCALE))
 txt_field_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(25 * settings.SCALE))
 caption_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(15 * settings.SCALE))
+lvl_select_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(80 * settings.SCALE))
 class MainMenu:
     def __init__(self, game):
         self.GAME = game
@@ -37,6 +38,21 @@ class MainMenu:
         self.selected_box = -1
         self.bbtn_destination = "main_menu"
         self.players = []
+        x = 550
+        y = 250 
+        self.lvl_buttons = [
+            Button(self.GAME, x * settings.SCALE, y * settings.SCALE, pg.image.load("assets/textures/lvl_buttons/lvl_button_1.png"), "[LVL|1]", 1 * settings.SCALE,1 * settings.SCALE),
+            Button(self.GAME, (x + 128 * 1.5) * settings.SCALE, y * settings.SCALE, pg.image.load("assets/textures/lvl_buttons/lvl_button_2.png"), "[LVL|2]", 1 * settings.SCALE,1 * settings.SCALE),
+            Button(self.GAME, (x + 128 * 3) * settings.SCALE, y * settings.SCALE, pg.image.load("assets/textures/lvl_buttons/lvl_button_3.png"), "[LVL|3]", 1 * settings.SCALE,1 * settings.SCALE),
+            Button(self.GAME,  x * settings.SCALE, (y + 128 * 1.5) * settings.SCALE, pg.image.load("assets/textures/lvl_buttons/lvl_button_4.png"), "[LVL|4]", 1 * settings.SCALE,1 * settings.SCALE),
+            Button(self.GAME, (x + 128 * 1.5) * settings.SCALE, (y + 128 * 1.5) * settings.SCALE, pg.image.load("assets/textures/lvl_buttons/lvl_button_5.png"), "[LVL|5]", 1 * settings.SCALE,1 * settings.SCALE),
+            Button(self.GAME, (x + 128 * 3) * settings.SCALE, (y + 128 * 1.5) * settings.SCALE, pg.image.load("assets/textures/lvl_buttons/lvl_button_6.png"), "[LVL|6]", 1 * settings.SCALE,1 * settings.SCALE),
+            Button(self.GAME, x * settings.SCALE, (y + 128 * 3) * settings.SCALE, pg.image.load("assets/textures/lvl_buttons/lvl_button_7.png"), "[LVL|7]", 1 * settings.SCALE,1 * settings.SCALE),
+            Button(self.GAME, (x + 128 * 1.5) * settings.SCALE, (y + 128 * 3) * settings.SCALE, pg.image.load("assets/textures/lvl_buttons/lvl_button_8.png"), "[LVL|8]", 1 * settings.SCALE,1 * settings.SCALE),
+            Button(self.GAME, (x + 128 * 3) * settings.SCALE, (y + 128 * 3) * settings.SCALE, pg.image.load("assets/textures/lvl_buttons/lvl_button_9.png"), "[LVL|9]", 1 * settings.SCALE,1 * settings.SCALE),
+        ]
+        self.sop = False
+        self.SERVER = None
     def update(self):
         mouse_pressed = pg.mouse.get_pressed()
         self.players = self.GAME.players
@@ -65,20 +81,21 @@ class MainMenu:
             if self.mpb.check_click():
                 self.bbtn_destination = self.page
                 self.page = "server_menu"
-
+                
             if self.spb.check_click():
-                settings.SHOW_MENU = False
                 self.bbtn_destination = self.page
-                self.GAME.play_type = "offline"
-                self.GAME.camera.pos[0] = 0
+                self.page = "single_player_options"
+                # settings.SHOW_MENU = False
+                # self.bbtn_destination = self.page
+                # self.GAME.play_type = "offline"
+                # self.GAME.camera.pos[0] = 0
         if self.page == "lobby_menu":
             #if len(self.players) > 0:
             self.GAME.enough_players
-            if self.GAME.enough_players:
+            if self.GAME.enough_players and self.SERVER != None:
                 if self.play_btn.check_click():
-                    self.GAME.client.send_msg("[PLAY]")
-                    settings.SHOW_MENU = False
-                    self.GAME.camera.pos[0] = 0
+                    self.bbtn_destination = self.page
+                    self.page = "multi_player_options"
         if self.page == "server_menu":
             self.bbtn_destination = "choice_menu"
             for btn in self.lobby_btns:
@@ -90,6 +107,32 @@ class MainMenu:
                     if btn.name == '[JOIN]':
                         self.join_game()
                         break
+        if self.page == "single_player_options":
+            for btn in self.lvl_buttons:
+                if btn.check_click():
+                    lvl = btn.name.split("|")
+                    lvl = lvl[1].split("]")
+                    lvl = int(lvl[0]) - 1
+                    self.GAME.play_type = "offline"
+                    
+                    self.bbtn_destination = self.page
+                    self.GAME.level = lvl
+                    self.sop = True
+        if self.page == "multi_player_options":
+            for btn in self.lvl_buttons:
+                if btn.check_click():
+                    lvl = btn.name.split("|")
+                    lvl = lvl[1].split("]")
+                    lvl = int(lvl[0]) - 1
+                    
+                    self.bbtn_destination = self.page
+                    self.GAME.level = lvl
+                    self.SERVER.current_level = lvl
+                    self.sop = True
+                    self.GAME.client.send_msg(["[PLAY]", lvl])
+                    self.GAME.camera.pos[0] = 0
+                    print(self.SERVER.current_level)
+
 
     def draw(self):
         if self.page == "main_menu":
@@ -126,11 +169,19 @@ class MainMenu:
                 pn = self.players[i][5]
                 pg.draw.rect(self.GAME.SCREEN, (30,30,30), [340 * settings.SCALE, (290 + i * 120) * settings.SCALE, 500 * settings.SCALE, 70 * settings.SCALE])
                 self.render_text(pn, 350 * settings.SCALE, (310 + i * 120) * settings.SCALE, False, txt_field_font)
-            if self.GAME.enough_players:
+            if self.GAME.enough_players and self.SERVER != None:
                 self.play_btn.draw()
         if self.page == "choice_menu":
             self.spb.draw()
             self.mpb.draw()
+        if self.page == "single_player_options":
+            self.render_text("LEVEL SELECT", self.GAME.SCREEN.get_width() / 2, 80, True, lvl_select_font, (0,0,0))
+            for btn in self.lvl_buttons:
+                btn.draw()
+        if self.page == "multi_player_options":
+            self.render_text("LEVEL SELECT", self.GAME.SCREEN.get_width() / 2, 80, True, lvl_select_font, (0,0,0))
+            for btn in self.lvl_buttons:
+                btn.draw()
     def text_objects(self):
         txt_surf = self.title["font"].render(self.title["text"], True, self.title["color"])
         return txt_surf, txt_surf.get_rect()
@@ -138,16 +189,16 @@ class MainMenu:
         text_surf, text_rect = self.text_objects()
         text_rect.center = (self.GAME.SCREEN.get_width() / 2), (100 * settings.SCALE)
         self.GAME.SCREEN.blit(text_surf, text_rect)
-    def get_txt_obj(self, text, fnt):
-        txt_surf = fnt.render(text, True, (255,255,255))
+    def get_txt_obj(self, text, fnt, col):
+        txt_surf = fnt.render(text, True, col)
         return txt_surf, txt_surf.get_rect()
-    def render_text(self,txt, x, y, c, fnt):
+    def render_text(self,txt, x, y, c, fnt, col=(255,255,255)):
         if c:
-            text_surf, text_rect = self.get_txt_obj(txt, fnt)
+            text_surf, text_rect = self.get_txt_obj(txt, fnt, col)
             text_rect.center = (x), (y)
             self.GAME.SCREEN.blit(text_surf, text_rect)
         else:
-            text_surf, text_rect = self.get_txt_obj(txt, fnt)
+            text_surf, text_rect = self.get_txt_obj(txt, fnt, col)
             text_rect.x = x
             text_rect.y = y
             self.GAME.SCREEN.blit(text_surf, text_rect)
@@ -157,12 +208,14 @@ class MainMenu:
         SERVER = socket.gethostbyname(socket.gethostname())
         PORT = 12345
         self.GAME.client = Client(SERVER, PORT)
-        s = threading.Thread(target=start_server, args=(SERVER, PORT, self.GAME))
+        self.SERVER  = Server(SERVER, PORT, self.GAME)
+        s = threading.Thread(target=self.SERVER.start)
         s.start()
         self.GAME.client.run()
         self.GAME.name = self.text_in_fields[0]
         self.GAME.client.send_msg(["[INIT]", self.GAME.name])
         self.GAME.play_type = "online"
+        
         print("[START]")
     def join_game(self):
         self.page = "lobby_menu"

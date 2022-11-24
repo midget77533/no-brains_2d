@@ -10,6 +10,7 @@ from camera import *
 from game_object import *
 from networking import *
 import pickle, os, csv
+from fade_animation import *
 default_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(15* settings.SCALE))
 pop_up_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(45* settings.SCALE))
 coin_ui_font =  pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(35* settings.SCALE))
@@ -66,6 +67,12 @@ class Game:
         self.restart_btn = Button(self, settings.WIDTH - a - (200 * settings.SCALE), 730 * settings.SCALE, pg.image.load("assets/textures/restart_btn.png"), "[NEXTLVL]", 1* settings.SCALE, 1* settings.SCALE)
         self.coin_icon = None
         self.collected_coins = []
+        self.outro_fade = ScreenFade(self, (0,0,0), 5, 0)
+        self.intro_fade = ScreenFade(self, (0,0,0), 5, 1)
+        self.fo = False
+        self.rnlm = False
+        self.lt = 2
+        self.fade_phase = 0
     def run(self):
         #self.MENU = MainMenu(self)
         #self.mixer.music.play(-1)
@@ -129,7 +136,8 @@ class Game:
         if settings.SHOW_MENU:
             if self.play_type == "online" and self.client.rsm:
                 self.camera.pos[0] = 0
-                settings.SHOW_MENU = False
+                self.level = self.client.lvl
+                self.MENU.sop = True
             # if self.play_type == "online":
             #     self.client.send_msg("[GET_DATA]")
             self.MENU.update()
@@ -157,9 +165,11 @@ class Game:
                                     self.game_objects.remove(go)
                         if lmc[1] == "[3]":
                             self.level = lmc[2]
-                            self.load_level_data()
-                            self.check_point = [64 * 4, 16 * 64]
-                            self.player.respawn_animation()
+                            self.player.completed_level = True
+                            self.rnlm = True
+                            # self.load_level_data()
+                            # self.check_point = [64 * 4, 16 * 64]
+                            # self.player.respawn_animation()
 
                 self.client.lmc = []
             self.player.update()          
@@ -171,7 +181,28 @@ class Game:
                 self.players = self.client.players
                 self.client.send_msg("[GET_DATA]")
             self.MENU.draw()
+            if self.MENU.sop:
+                
+                # if self.play_type == "offline":
+                #         print('f')
+                if self.outro_fade.fade():
+                    self.fade_phase = 0
+                    self.outro_fade = ScreenFade(self, (0,0,0), 5, 0)
+                    self.load_level_data()
+                    #self.play_type = "offline"
+                    self.camera.pos[0] = 0
+                    
+                    settings.SHOW_MENU = False
+                # else:
+                #     if self.rnlm and not self.fo:
+                #         if self.outro_fade.fade():
+                #             self.fo = True
+                #             self.outro_fade = ScreenFade(self, (0,0,0), 5, 0)
+                #             self.load_level_data()
+                #             self.check_point = [64 * 4, 16 * 64]
+                #             self.player.respawn_animation()
         else:
+
             wo = []
             for go in self.game_objects:
                 if go.type != 19:
@@ -183,6 +214,10 @@ class Game:
 
 
             if self.play_type == "online":
+                if self.MENU.sop:
+                    if self.intro_fade.fade():
+                        self.MENU.sop = False
+                        self.intro_fade = ScreenFade(self, (0,0,0), 5, 1)
                 #self.client.send_msg("[GET_DATA]")
                 self.players = self.client.players
                 p = self.player
@@ -228,19 +263,55 @@ class Game:
                 if self.camera.spectating:
                     self.text_to_screen("SPECTATING",self.SCREEN.get_width() / 2,30 ,pop_up_font, (0,0,0))
                     self.text_to_screen(str(self.players[self.sn][5]),self.SCREEN.get_width() / 2,70 ,pop_up_font, (0,0,0))
-            if self.player.completed_level:
-                self.nxt_level_btn.draw()
-                self.restart_btn.draw()
-                if self.nxt_level_btn.check_click():
-                    self.player.next_level()
-                if self.restart_btn.check_click():
-                    self.player.respawn_animation()
+                if self.player.completed_level:
+                    self.nxt_level_btn.draw()
+                    self.restart_btn.draw()
+                    if self.nxt_level_btn.check_click():
+                        self.player.next_level()
+                    if self.restart_btn.check_click():
+                        self.player.respawn_animation()
             if self.coin_icon != None:
                 self.SCREEN.blit(self.coin_icon, (20 * settings.SCALE, 20 * settings.SCALE))
                 self.text_to_screen(str(self.player.collected_coins), 100 * settings.SCALE, 50 * settings.SCALE, coin_ui_font, (255,255,255))
             for go in wo:
                 go.update()
                 go.draw()
+        if self.play_type == "offline":
+            if self.player.completed_level and not self.fo:
+                if self.outro_fade.fade():
+                    self.fo = True
+                    self.outro_fade = ScreenFade(self, (0,0,0), 5, 0)
+                    #if self.play_type == "offline":
+                    self.player.next_level()
+
+            if not self.player.completed_level and self.fo:
+                if self.intro_fade.fade():
+                    self.fo = False      
+                    self.intro_fade = ScreenFade(self, (0,0,0), 5, 1) 
+            if self.MENU.sop and not settings.SHOW_MENU:
+                if self.intro_fade.fade():
+                    self.MENU.sop = False
+                    self.intro_fade = ScreenFade(self, (0,0,0), 5, 1) 
+        else:
+            if self.rnlm and not self.fo:
+                if self.outro_fade.fade():
+                    self.fo = True
+                    self.outro_fade = ScreenFade(self, (0,0,0), 5, 0)
+                    self.load_level_data()
+                    self.check_point = [64 * 4, 16 * 64]
+                    self.player.respawn_animation()
+
+            if self.rnlm and self.fo:
+                if self.intro_fade.fade():
+                    self.fo = False    
+                    self.rnlm = False  
+                    self.intro_fade = ScreenFade(self, (0,0,0), 5, 1) 
+            if self.MENU.sop and not settings.SHOW_MENU:
+                if self.intro_fade.fade():
+                    self.MENU.sop = False
+                    self.intro_fade = ScreenFade(self, (0,0,0), 5, 1) 
+            
+
         pg.display.update()
     def load_level_data(self):
         img_list = []
@@ -329,7 +400,7 @@ class Game:
 
         TILE_SPACING = 64
 
-        with open(os.path.join('levels',f'level{self.level}_data.csv'), newline='') as csvfile:
+        with open(os.path.join(f'levels_{self.lt}',f'level{self.level}_data.csv'), newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter = ',')
             for x, row in enumerate(reader):
                 for y, tile in enumerate(row):
