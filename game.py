@@ -11,7 +11,9 @@ from game_object import *
 from networking import *
 import pickle, os, csv
 from fade_animation import *
+from end_animation import *
 import pyperclip
+
 default_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(15* settings.SCALE))
 pop_up_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(45* settings.SCALE))
 coin_ui_font =  pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(35* settings.SCALE))
@@ -43,7 +45,7 @@ class Game:
         self.camera = Camera(self, self.player)
         self.game_objects = []
         self.players = []
-        self.client = Client(socket.gethostbyname(socket.gethostname()), 12345)
+        self.client = Client("", 12345)
         self.chat_text = ""
         self.typing = False
         self.mouse_still_down = False
@@ -74,6 +76,8 @@ class Game:
         self.rnlm = False
         self.lt = 2
         self.fade_phase = 0
+        self.finished_game = False
+        self.end_anim = EndAnimation(self)
     def run(self):
         #self.MENU = MainMenu(self)
         #self.mixer.music.play(-1)
@@ -207,6 +211,9 @@ class Game:
                 #             self.load_level_data()
                 #             self.check_point = [64 * 4, 16 * 64]
                 #             self.player.respawn_animation()
+            if self.end_anim.playing:
+                if self.end_anim.update():
+                    self.new_game()
         else:
 
             wo = []
@@ -284,13 +291,20 @@ class Game:
                 go.draw()
         if self.play_type == "offline":
             if self.player.completed_level and not self.fo:
+                if self.level >= 8:
+                    self.finished_game = True
                 if self.outro_fade.fade():
                     self.fo = True
+                    if self.finished_game:
+                        self.MENU = MainMenu(self)
+                        settings.SHOW_MENU = True
+                        self.end_anim.playing = True
+                    
                     self.outro_fade = ScreenFade(self, (0,0,0), 5, 0)
                     #if self.play_type == "offline":
                     self.player.next_level()
 
-            if not self.player.completed_level and self.fo:
+            if not self.player.completed_level and self.fo and not self.finished_game:
                 if self.intro_fade.fade():
                     self.fo = False      
                     self.intro_fade = ScreenFade(self, (0,0,0), 5, 1) 
@@ -300,14 +314,21 @@ class Game:
                     self.intro_fade = ScreenFade(self, (0,0,0), 5, 1) 
         else:
             if self.rnlm and not self.fo:
+                if self.level >= 8:
+                    self.finished_game = True
                 if self.outro_fade.fade():
                     self.fo = True
-                    self.outro_fade = ScreenFade(self, (0,0,0), 5, 0)
-                    self.load_level_data()
-                    self.check_point = [64 * 4, 16 * 64]
-                    self.player.respawn_animation()
+                    if self.finished_game:
+                        self.MENU = MainMenu(self)
+                        settings.SHOW_MENU = True
+                        self.end_anim.playing = True
+                    if not self.finished_game:
+                        self.outro_fade = ScreenFade(self, (0,0,0), 5, 0)
+                        self.load_level_data()
+                        self.check_point = [64 * 4, 16 * 64]
+                        self.player.respawn_animation()
 
-            if self.rnlm and self.fo:
+            if self.rnlm and self.fo and not self.finished_game:
                 if self.intro_fade.fade():
                     self.fo = False    
                     self.rnlm = False  
@@ -316,133 +337,139 @@ class Game:
                 if self.intro_fade.fade():
                     self.MENU.sop = False
                     self.intro_fade = ScreenFade(self, (0,0,0), 5, 1) 
-            
+        if self.play_type == "offline":
+            if self.finished_game and self.end_anim.playing:
+                if self.end_anim.update():
+                    self.end_anim.playing = False
 
         pg.display.update()
     def load_level_data(self):
-        img_list = []
+        if self.level < 9:
+            img_list = []
 
-        BLACK = (0,0,0)
+            BLACK = (0,0,0)
 
-        images = []
-        tile_sheet = pg.image.load('assets/textures/brick_tile_sheet.png')
-        w = tile_sheet.get_width()
-        h = tile_sheet.get_height()
-        tile_sheet = pg.transform.scale(tile_sheet, (w, h))
-        TILE_SIZE = 64 
-        t1 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 0, 0)
-        t2 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 1, 0)
-        t3 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 2, 0)
-        t4 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 0, 1)
-        t5 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 1, 1)
-        t6 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 2, 1)
-        t7 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 0, 2)
-        t8 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 1, 2)
-        t9 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 2, 2)
+            images = []
+            tile_sheet = pg.image.load('assets/textures/brick_tile_sheet.png')
+            w = tile_sheet.get_width()
+            h = tile_sheet.get_height()
+            tile_sheet = pg.transform.scale(tile_sheet, (w, h))
+            TILE_SIZE = 64 
+            t1 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 0, 0)
+            t2 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 1, 0)
+            t3 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 2, 0)
+            t4 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 0, 1)
+            t5 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 1, 1)
+            t6 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 2, 1)
+            t7 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 0, 2)
+            t8 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 1, 2)
+            t9 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 2, 2)
 
-        t10 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 3, 0)
-        t11 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 4, 0)
-        t12 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 5, 0)
-        t13 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 3, 1)
-        t14 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 4, 1)
-        t15 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 5, 1)
-        t16 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 3, 2)
-        t17 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 4, 2)
-        t18 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 5, 2)
-        t19 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 6, 0)
-        t20 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 6, 1)
-        t21 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 6, 2)
+            t10 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 3, 0)
+            t11 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 4, 0)
+            t12 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 5, 0)
+            t13 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 3, 1)
+            t14 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 4, 1)
+            t15 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 5, 1)
+            t16 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 3, 2)
+            t17 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 4, 2)
+            t18 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 5, 2)
+            t19 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 6, 0)
+            t20 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 6, 1)
+            t21 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 6, 2)
 
-        t22 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 7, 0)
-        t23 = pg.transform.rotate(t22, 90 % 360)
-        t24 = pg.transform.rotate(t22, 180 % 360)
-        t25 = pg.transform.rotate(t22, 270 % 360)
-        t26 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 8, 0)
-        self.coin_icon = pg.transform.scale(t26, (64 * settings.SCALE, 64 * settings.SCALE))
-        t26 = pg.transform.scale(t26, (32 * settings.SCALE, 32 * settings.SCALE))
-        t27 = get_image(tile_sheet,64,64,BLACK, 8, 1)
-        t28 = get_image(tile_sheet,64,64,BLACK, 9, 0)
-        t29 = get_image(tile_sheet,64,64,BLACK, 10, 0)
-        t30 = get_image(tile_sheet,64,64,(255,255,255), 9, 2)
-        images.append(t1)
-        images.append(t2)
-        images.append(t3)
-        images.append(t4)
-        images.append(t5)
-        images.append(t6)
-        images.append(t7)
-        images.append(t8)
-        images.append(t9)
+            t22 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 7, 0)
+            t23 = pg.transform.rotate(t22, 90 % 360)
+            t24 = pg.transform.rotate(t22, 180 % 360)
+            t25 = pg.transform.rotate(t22, 270 % 360)
+            t26 = get_image(tile_sheet,TILE_SIZE,TILE_SIZE,BLACK, 8, 0)
+            self.coin_icon = pg.transform.scale(t26, (64 * settings.SCALE, 64 * settings.SCALE))
+            t26 = pg.transform.scale(t26, (32 * settings.SCALE, 32 * settings.SCALE))
+            t27 = get_image(tile_sheet,64,64,BLACK, 8, 1)
+            t28 = get_image(tile_sheet,64,64,BLACK, 9, 0)
+            t29 = get_image(tile_sheet,64,64,BLACK, 10, 0)
+            t30 = get_image(tile_sheet,64,64,(255,255,255), 9, 2)
+            images.append(t1)
+            images.append(t2)
+            images.append(t3)
+            images.append(t4)
+            images.append(t5)
+            images.append(t6)
+            images.append(t7)
+            images.append(t8)
+            images.append(t9)
 
-        images.append(t10)
-        images.append(t11)
-        images.append(t12)
-        images.append(t13)
-        images.append(t14)
-        images.append(t15)
-        images.append(t16)
-        images.append(t17)
-        images.append(t18)
-        images.append(t19)
-        images.append(t20)
-        images.append(t21)
-        images.append(t22)
-        images.append(t23)
-        images.append(t24)
-        images.append(t25)
-        images.append(t26)
-        images.append(t27)
-        images.append(t28)
-        images.append(t29)
-        images.append(t30)
-        for i in range(len(images)):
-            if i == 25:
-                img = pg.transform.scale(images[i], (32 * settings.SCALE, 32 * settings.SCALE))
-                images[i] = img
-            else:
-                img = pg.transform.scale(images[i], (64 * settings.SCALE, 64 * settings.SCALE))
-                images[i] = img
-        self.game_objects = []
+            images.append(t10)
+            images.append(t11)
+            images.append(t12)
+            images.append(t13)
+            images.append(t14)
+            images.append(t15)
+            images.append(t16)
+            images.append(t17)
+            images.append(t18)
+            images.append(t19)
+            images.append(t20)
+            images.append(t21)
+            images.append(t22)
+            images.append(t23)
+            images.append(t24)
+            images.append(t25)
+            images.append(t26)
+            images.append(t27)
+            images.append(t28)
+            images.append(t29)
+            images.append(t30)
+            for i in range(len(images)):
+                if i == 25:
+                    img = pg.transform.scale(images[i], (32 * settings.SCALE, 32 * settings.SCALE))
+                    images[i] = img
+                else:
+                    img = pg.transform.scale(images[i], (64 * settings.SCALE, 64 * settings.SCALE))
+                    images[i] = img
+            self.game_objects = []
 
-        TILE_SPACING = 64
+            TILE_SPACING = 64
 
-        with open(os.path.join(f'levels_{self.lt}',f'level{self.level}_data.csv'), newline='') as csvfile:
-            reader = csv.reader(csvfile, delimiter = ',')
-            for x, row in enumerate(reader):
-                for y, tile in enumerate(row):
-                    if int(tile) >= 0:
-                        if int(tile) < 9:
-                            if int(tile) < 6:
-                                self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), True, [0,0]))
-                            else:
-                                self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), False, [0,0]))
-                        elif int(tile) >= 9 and int(tile) < 19:
-                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], False, int(tile), True, [0,0]))
-                        if int(tile) >= 9 < 18:
-                            self.in_game_keys.append([TILE_SPACING * y, TILE_SPACING * x, int(tile)])
-                        if int(tile) == 19:
-                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x + 1], [images[0],images[1],images[2],images[3],images[4],images[5],images[6],images[7],images[8]], False, int(tile), True, [0,0]))
-                        if int(tile) == 20:
-                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)], get_image(tile_sheet,64,64,BLACK, 7, 2)], False, int(tile), True, [0,0]))
-                        if int(tile) >= 21 and int(tile) < 25:
-
-                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x + 1], [images[int(tile)]], False, int(tile), True, [0,0]))
-                        if int(tile) == 25:
-                            ac = False
-                            for i in self.collected_coins:
-                                if [TILE_SPACING * y,TILE_SPACING * x] == i:
-                                    print("CLEARED COIN")
-                                    ac = True
-                            if not ac:
+            with open(os.path.join(f'levels_{self.lt}',f'level{self.level}_data.csv'), newline='') as csvfile:
+                reader = csv.reader(csvfile, delimiter = ',')
+                for x, row in enumerate(reader):
+                    for y, tile in enumerate(row):
+                        if int(tile) >= 0:
+                            if int(tile) < 9:
+                                if int(tile) < 6:
+                                    self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), True, [0,0]))
+                                else:
+                                    self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), False, [0,0]))
+                            elif int(tile) >= 9 and int(tile) < 19:
                                 self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], False, int(tile), True, [0,0]))
-                        if int(tile) == 26:
-                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], False, int(tile), True, [0,0]))
-                        if int(tile) == 27:
-                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), True, [3,0]))
-                        if int(tile) == 28:
-                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), True, [0,3]))
-                        if int(tile) == 29:
-                            self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), True, [0,0]))
+                            if int(tile) >= 9 < 18:
+                                self.in_game_keys.append([TILE_SPACING * y, TILE_SPACING * x, int(tile)])
+                            if int(tile) == 19:
+                                self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x + 1], [images[0],images[1],images[2],images[3],images[4],images[5],images[6],images[7],images[8]], False, int(tile), True, [0,0]))
+                            if int(tile) == 20:
+                                self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)], get_image(tile_sheet,64,64,BLACK, 7, 2)], False, int(tile), True, [0,0]))
+                            if int(tile) >= 21 and int(tile) < 25:
+
+                                self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x + 1], [images[int(tile)]], False, int(tile), True, [0,0]))
+                            if int(tile) == 25:
+                                ac = False
+                                for i in self.collected_coins:
+                                    if [TILE_SPACING * y,TILE_SPACING * x] == i:
+                                        print("CLEARED COIN")
+                                        ac = True
+                                if not ac:
+                                    self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], False, int(tile), True, [0,0]))
+                            if int(tile) == 26:
+                                self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], False, int(tile), True, [0,0]))
+                            if int(tile) == 27:
+                                self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), True, [3,0]))
+                            if int(tile) == 28:
+                                self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), True, [0,3]))
+                            if int(tile) == 29:
+                                self.game_objects.append(GameObject(self, [TILE_SPACING * y, TILE_SPACING * x], [images[int(tile)]], True, int(tile), True, [0,0]))
+        else:
+            self.finished_game = True
 
     def text_objects(self, txt, f, c):
         txt_surf = f.render(txt, True, c)

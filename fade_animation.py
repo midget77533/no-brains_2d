@@ -32,11 +32,53 @@ class ScreenFade:
         self.speed = speed * settings.SCALE
         self.fc = 0
         self.num = num
-
+        self.mc = 0
+        self.r = 255
+        self.g = 0
+        self.b = 0
+        self.shift_speed = 5
         if self.num == 0:
             self.fc = settings.WIDTH / 2
         
     def fade(self):
+        if self.GAME.finished_game:
+            if self.mc == 0:
+                self.g += self.shift_speed
+            if self.mc == 1:
+                self.r -= self.shift_speed
+            if self.mc == 2:
+                self.b += self.shift_speed
+            if self.mc == 3:
+                self.g -= self.shift_speed
+            if self.mc == 4:
+                self.r += self.shift_speed
+            if self.mc == 5:
+                self.b -= self.shift_speed
+            if self.r >= 255 and self.g <= 0 and self.b <= 0:
+                self.mc = 0
+            if self.r >= 255 and self.g >= 255:
+                self.mc = 1
+            if self.g >= 255 and self.r <= 0:
+                self.mc = 2
+            if self.g >= 255 and self.b >= 255:
+                self.mc = 3
+            if self.b >= 255 and self.r <= 0 and self.g <= 0:
+                self.mc = 4
+            if self.r >= 255 and self.b >= 255:
+                self.mc = 5
+            if self.r < 0:
+                self.r = 0
+            if self.g < 0:
+                self.g = 0
+            if self.b < 0:
+                self.b = 0
+            if self.r > 255:
+                self.r = 255
+            if self.g > 255:
+                self.g = 255
+            if self.b > 255:
+                self.b = 255
+            self.colour = (self.r, self.g, self.b)
         fade_complete = False
         if self.num == 0:
             #print(self.fc)
