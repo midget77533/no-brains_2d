@@ -36,6 +36,8 @@ class Game:
         self.mixer = pg.mixer
         self.running = True
         self.SCREEN = pg.display.set_mode(RES) 
+        if FULL_SCREEN:
+            self.SCREEN = pg.display.set_mode(RES, pg.FULLSCREEN)
         self.MENU = MainMenu(self)
         self.CLOCK = pg.time.Clock()
         self.buttons = []
@@ -55,7 +57,7 @@ class Game:
         self.in_game_keys = []
         self.player_num = 255
         self.check_point = [64 * 4, 16 * 64]
-        self.music = self.mixer.music.load('assets/audio/test_song.wav')
+        self.music = self.mixer.music.load('assets/audio/MUSIC.wav')
         settings.CAMERA_TARGET = self.player
         self.sn = 0
         self.tick_buffer = 0
@@ -78,16 +80,21 @@ class Game:
         self.fade_phase = 0
         self.finished_game = False
         self.end_anim = EndAnimation(self)
-    def run(self):
-        #self.MENU = MainMenu(self)
-        #self.mixer.music.play(-1)
+        self.sound_vol = 0
+        self.music_vol = .8
+        self.MENU = MainMenu(self)
+        self.mixer.music.play(-1)
         self.load_level_data()
         self.SCREEN = pg.display.set_mode(RES)
         if FULL_SCREEN:
             self.SCREEN = pg.display.set_mode(RES, pg.FULLSCREEN)
+    def run(self):
+
         while self.running:
+
             self.CLOCK.tick(FPS)
             self.tick_buffer += (1 / 60) * self.delta_time
+            self.mixer.music.set_volume(self.music_vol)
             if self.tick_buffer > 60:
                 self.tick_buffer = 0
             kp = pg.key.get_pressed()
@@ -192,10 +199,9 @@ class Game:
                 self.client.send_msg("[GET_DATA]")
             self.MENU.draw()
             if self.MENU.sop:
-                
                 # if self.play_type == "offline":
                 #         print('f')
-                if self.outro_fade.fade():
+                if not self.finished_game and self.outro_fade.fade():
                     self.fade_phase = 0
                     self.outro_fade = ScreenFade(self, (0,0,0), 5, 0)
                     self.load_level_data()
@@ -313,16 +319,21 @@ class Game:
                     self.MENU.sop = False
                     self.intro_fade = ScreenFade(self, (0,0,0), 5, 1) 
         else:
+            if self.level >= 8 and self.rnlm:
+                self.finished_game = True
             if self.rnlm and not self.fo:
-                if self.level >= 8:
-                    self.finished_game = True
-                if self.outro_fade.fade():
+
+                if not self.fo and self.outro_fade.fade():
                     self.fo = True
                     if self.finished_game:
-                        self.MENU = MainMenu(self)
+                        self.outro_fade = None
+                        self.MENU.sop = False
                         settings.SHOW_MENU = True
                         self.end_anim.playing = True
+                        pass
+                        
                     if not self.finished_game:
+                        
                         self.outro_fade = ScreenFade(self, (0,0,0), 5, 0)
                         self.load_level_data()
                         self.check_point = [64 * 4, 16 * 64]
@@ -337,10 +348,11 @@ class Game:
                 if self.intro_fade.fade():
                     self.MENU.sop = False
                     self.intro_fade = ScreenFade(self, (0,0,0), 5, 1) 
-        if self.play_type == "offline":
+        if self.play_type == "offline" or self.play_type == "online":
             if self.finished_game and self.end_anim.playing:
                 if self.end_anim.update():
                     self.end_anim.playing = False
+                    print('DONE')
 
         pg.display.update()
     def load_level_data(self):

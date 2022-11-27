@@ -14,6 +14,8 @@ lable_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(50 * sett
 txt_field_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(25 * settings.SCALE))
 caption_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(15 * settings.SCALE))
 lvl_select_font = pg.font.Font('assets/fonts/poppins/Poppins-bold.ttf', int(80 * settings.SCALE))
+settings_font = pg.font.Font('assets/fonts/poppins/Poppins-Medium.ttf', int(40 * settings.SCALE))
+settings_instruction_font = pg.font.Font('assets/fonts/poppins/Poppins-SemiBold.ttf', int(30 * settings.SCALE))
 
 class MainMenu:
     def __init__(self, game):
@@ -55,6 +57,9 @@ class MainMenu:
         ]
         self.sop = False
         self.SERVER = None
+        self.selected_slide = -1
+
+
     def update(self):
         mouse_pressed = pg.mouse.get_pressed()
         self.players = self.GAME.players
@@ -75,6 +80,10 @@ class MainMenu:
                         self.bbtn_destination = self.page
                         self.page = "choice_menu"
                         break
+                    if btn.name == '[SETTINGS]':
+                        self.bbtn_destination = self.page
+                        self.page = "settings"
+                        break
                     if btn.name == '[QUIT]':
                         self.GAME.running = False
                         break
@@ -93,8 +102,8 @@ class MainMenu:
                 # self.GAME.camera.pos[0] = 0
         if self.page == "lobby_menu":
             #if len(self.players) > 0:
-            self.GAME.enough_players
-            if self.GAME.enough_players and self.SERVER != None:
+            self.GAME.enough_players = True
+            if self.GAME.enough_players:
                 if self.play_btn.check_click():
                     self.bbtn_destination = self.page
                     self.page = "multi_player_options"
@@ -116,7 +125,7 @@ class MainMenu:
                     lvl = lvl[1].split("]")
                     lvl = int(lvl[0]) - 1
                     self.GAME.play_type = "offline"
-                    
+                    self.page = "main"
                     self.bbtn_destination = self.page
                     self.GAME.level = lvl
                     self.GAME.lt = 1
@@ -128,6 +137,7 @@ class MainMenu:
                     lvl = lvl[1].split("]")
                     lvl = int(lvl[0]) - 1
                     
+                    self.page = "main"
                     self.bbtn_destination = self.page
                     self.GAME.level = lvl
                     self.SERVER.current_level = lvl
@@ -186,6 +196,76 @@ class MainMenu:
             self.render_text("LEVEL SELECT", self.GAME.SCREEN.get_width() / 2, 80, True, lvl_select_font, (0,0,0))
             for btn in self.lvl_buttons:
                 btn.draw()
+        if self.page == "settings":
+            #TEXT & LINES
+            print(self.GAME.music_vol)
+            self.render_text("OPTIONS", self.GAME.SCREEN.get_width() / 2, 80, True, lvl_select_font, (0,0,0))
+            x = 500 * settings.SCALE
+            y = 250 * settings.SCALE
+            line_x = 430 * settings.SCALE
+            line_y = 340 * settings.SCALE
+            line_e = settings.WIDTH - line_x
+            spacing = 140 * settings.SCALE
+            self.render_text("sound", x, y, False, settings_font, (0,0,0))
+            self.render_text("music", x, y + spacing, False, settings_font, (0,0,0))
+            self.render_text("fullscreen", x, y + spacing * 2, False, settings_font, (0,0,0))
+            self.render_text("'F' to toggle", 800 * settings.SCALE, y + spacing * 2, False, settings_instruction_font, (0,0,0))
+            pg.draw.line(self.GAME.SCREEN, (0,0,0),(line_x, line_y), (line_e, line_y), 2)
+            pg.draw.line(self.GAME.SCREEN, (0,0,0),(line_x, line_y + spacing), (line_e, line_y + spacing), 2)
+            #pg.draw.line(self.GAME.SCREEN, (0,0,0),(line_x, line_y + spacing * 2), (line_e, line_y + spacing * 2), 2)
+            #SLIDER LINES
+            line_x = 800 * settings.SCALE 
+            line_y = 280 * settings.SCALE
+            line_e = 1000 *  settings.SCALE
+            pg.draw.line(self.GAME.SCREEN, (0,0,0),(line_x, line_y), (line_e, line_y), 3)
+            pg.draw.line(self.GAME.SCREEN, (0,0,0),(line_x, line_y + spacing), (line_e, line_y + spacing), 3)
+            #SLIDERS
+            sp1 = [line_x + self.GAME.sound_vol * 200 * settings.SCALE, line_y]
+            sp2 = [line_x + self.GAME.music_vol * 200 * settings.SCALE, line_y + spacing]
+
+            mx, my = pg.mouse.get_pos()
+            mc = pg.mouse.get_pressed()
+            kp = pg.key.get_pressed()
+            if mc[0] == 1:
+                if sp1[0] - 10 < mx < sp1[0] + 10 and sp1[1] - 10 < my < sp1[1] + 10:
+                    self.selected_slide = 1
+                if sp2[0] - 10 < mx < sp2[0] + 10 and sp2[1] - 10 < my < sp2[1] + 10:
+                    self.selected_slide = 2
+            else:
+                self.selected_slide = -1
+            if self.selected_slide == 1:
+                sp1[0] = mx 
+                self.GAME.sound_vol = ((int(sp1[0] / settings.SCALE) - line_x / settings.SCALE)) / 200
+            if self.selected_slide == 2:
+                sp2[0] = mx
+                self.GAME.music_vol = ((int(sp2[0]/ settings.SCALE ) - line_x / settings.SCALE)) / 200 
+
+
+            if sp1[0] < line_x:
+                sp1[0] = line_x + 1
+            if sp1[0] > line_e:
+                sp1[0] = line_e - 1
+            if sp2[0] < line_x:
+                sp2[0] = line_x + 1
+            if sp2[0] > line_e:
+                sp2[0] = line_e - 1
+
+
+
+            self.GAME.sound_vol = ((int(sp1[0] / settings.SCALE) - line_x / settings.SCALE)) / 200 
+            self.GAME.music_vol = ((int(sp2[0] / settings.SCALE) - line_x / settings.SCALE)) / 200  
+
+            if kp[pg.K_f]:
+                settings.FULL_SCREEN = not settings.FULL_SCREEN
+                if settings.FULL_SCREEN:
+                    pg.display.set_mode((settings.WIDTH * settings.SCALE, settings.HEIGHT* settings.SCALE ), pg.FULLSCREEN)
+                else:
+                    pg.display.set_mode((settings.WIDTH * settings.SCALE, settings.HEIGHT* settings.SCALE))
+                #settings.SCALE = ((int(mx) - line_x)) / 200
+            pg.draw.circle(self.GAME.SCREEN, (150,150,150), sp1, 10)
+            pg.draw.circle(self.GAME.SCREEN, (150,150,150), sp2, 10)
+            pg.draw.circle(self.GAME.SCREEN, (0,255,0),(mx,my),5)
+
     def text_objects(self):
         txt_surf = self.title["font"].render(self.title["text"], True, self.title["color"])
         return txt_surf, txt_surf.get_rect()

@@ -54,8 +54,8 @@ class EndAnimation:
 
         self.fc -= self.speed
         print(self.fc)
-        x = (settings.WIDTH / 2 - (self.fc / 2)) * settings.SCALE
-        y = (settings.HEIGHT / 2 - (self.fc / 2)) * settings.SCALE
+        x = (settings.WIDTH / 2 - (self.fc / 2 * settings.SCALE)) 
+        y = (settings.HEIGHT / 2 - (self.fc / 2 * settings.SCALE))
         pg.draw.rect(self.GAME.SCREEN, self.colour, [x, y, self.fc, self.fc])
         anim_complete = False
         if self.fc <= 2:

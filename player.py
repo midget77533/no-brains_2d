@@ -89,6 +89,7 @@ class Player:
             if type(self.anim_frame / 2) == int:
                 self.GAME.SCREEN.blit(self.left_sprites[int(self.anim_frame)], (self.draw_pos[0] * settings.SCALE, self.draw_pos[1] * settings.SCALE))
     def update(self):
+        self.pop_sound.set_volume(self.GAME.sound_vol)
         keys_pressed = pg.key.get_pressed()
         mx, my = pg.mouse.get_pos()
         if not self.pos_locked:
@@ -151,6 +152,7 @@ class Player:
             
         self.move()
     def next_level(self):
+        self.GAME.collected_coins = []
         if self.GAME.play_type == "online":
             self.GAME.client.send_msg(["[MAP_CHANGE]", "[3]", "[]"])
         else:
